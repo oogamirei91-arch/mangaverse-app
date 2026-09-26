@@ -1,0 +1,56 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Memungkinkan tombol "Run workflow" manual di GitHub
+
+jobs:
+  build:
+    name: Build & Package APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout kode dari repositori GitHub
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Pasang Java JDK 17
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3. Pasang Flutter SDK versi stabil terbaru
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      # 4. Generate folder Android otomatis jika belum ada di repository
+      - name: Generate Android Platform Files (If Missing)
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Folder android belum ada, men-generate struktur platform Android..."
+            flutter create . --platforms=android --org=com.mangaverse.app
+          fi
+
+      # 5. Unduh dependensi aplikasi (pub get)
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # 6. Kompilasi APK mode Release
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      # 7. Unggah file APK ke tab Artifacts GitHub agar bisa langsung di-download
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mangaverse-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
