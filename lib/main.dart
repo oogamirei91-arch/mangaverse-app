@@ -54,13 +54,23 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
-    // Jika masih mengecek sesi lokal saat startup
-    if (auth.isLoading && auth.currentUser == null) {
+    // Hanya tampilkan splash layar penuh saat aplikasi pertama kali dibuka untuk cek sesi lokal
+    if (auth.isCheckingSession) {
       return const Scaffold(
         backgroundColor: AppTheme.backgroundColor,
         body: Center(
-          child: CircularProgressIndicator(
-            color: AppTheme.primaryColor,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                color: AppTheme.primaryColor,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Memuat MangaVerse...',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+            ],
           ),
         ),
       );

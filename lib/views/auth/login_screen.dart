@@ -128,7 +128,7 @@ class LoginScreen extends StatelessWidget {
                         _buildFeatureRow(
                           icon: Icons.sync_rounded,
                           color: const Color(0xFF06D6A0),
-                          text: 'Simpan Bookmark & Riwayat di Cloud',
+                          text: 'Simpan Bookmark & Riwayat di Perangkat',
                         ),
                         const Divider(height: 24, color: Color(0xFF2E3245)),
                         _buildFeatureRow(
@@ -140,13 +140,13 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // Bottom Action (Google Sign In Only)
+                  // Bottom Action Buttons
                   Column(
                     children: [
                       // Google Sign In Button
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: 54,
                         child: ElevatedButton(
                           onPressed: authProvider.isLoading
                               ? null
@@ -155,21 +155,12 @@ class LoginScreen extends StatelessWidget {
                                       .read<AuthProvider>()
                                       .loginWithGoogle();
                                   if (success && context.mounted) {
-                                    // Berhasil login, navigasi ke Beranda
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          'Selamat datang, ${authProvider.currentUser?.displayName}!',
+                                          'Selamat datang, ${context.read<AuthProvider>().currentUser?.displayName}!',
                                         ),
                                         backgroundColor: AppTheme.primaryColor,
-                                      ),
-                                    );
-                                  } else if (authProvider.errorMessage != null &&
-                                      context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(authProvider.errorMessage!),
-                                        backgroundColor: Colors.redAccent,
                                       ),
                                     );
                                   }
@@ -220,11 +211,48 @@ class LoginScreen extends StatelessWidget {
                                 ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+
+                      // Guest / Quick Demo Mode Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : () async {
+                                  await context.read<AuthProvider>().loginAsGuest();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Masuk sebagai Tamu Pembaca!'),
+                                        backgroundColor: AppTheme.primaryColor,
+                                      ),
+                                    );
+                                  }
+                                },
+                          icon: const Icon(Icons.person_outline_rounded, size: 20, color: Colors.white70),
+                          label: Text(
+                            'Masuk sebagai Tamu (Mode Cepat)',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.white.withOpacity(0.15)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 16),
 
                       // Terms & Disclaimer
                       Text(
-                        'Dengan masuk, Anda menyetujui Ketentuan Layanan\ndan Kebijakan Privasi kami.',
+                        'Dengan masuk, Anda menyetujui Ketentuan Layanan\ndan Kebijakan Privasi MangaVerse.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,

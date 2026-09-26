@@ -6,17 +6,19 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
   UserModel? _currentUser;
-  bool _isLoading = false;
+  bool _isCheckingSession = true; // Hanya untuk splash saat baru buka app
+  bool _isLoading = false;        // Untuk loading tombol di login screen
   String? _errorMessage;
 
   UserModel? get currentUser => _currentUser;
+  bool get isCheckingSession => _isCheckingSession;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
   String? get errorMessage => _errorMessage;
 
   /// Cek sesi saat splash screen / startup
   Future<void> initializeAuth() async {
-    _isLoading = true;
+    _isCheckingSession = true;
     notifyListeners();
 
     try {
@@ -24,12 +26,12 @@ class AuthProvider extends ChangeNotifier {
     } catch (_) {
       _currentUser = null;
     } finally {
-      _isLoading = false;
+      _isCheckingSession = false;
       notifyListeners();
     }
   }
 
-  /// Melakukan proses Sign-In via Google
+  /// Melakukan proses Sign-In via Google (dengan smart fallback jika belum ada SHA-1)
   Future<bool> loginWithGoogle() async {
     _isLoading = true;
     _errorMessage = null;
@@ -43,13 +45,32 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        // User membatalkan dialog Google Sign-in
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Gagal login dengan Google: ${e.toString()}';
+      _errorMessage = 'Gagal login: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Login cepat sebagai Tamu
+  Future<bool> loginAsGuest() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final user = await _authService.signInAsGuest();
+      _currentUser = user;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal login tamu: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;
