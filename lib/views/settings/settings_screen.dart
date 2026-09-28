@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/manga_provider.dart';
+import '../../widgets/server_source_picker_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -194,6 +195,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     onChanged: (val) => mangaProvider.setSuwayomiUrl(val),
                   ),
+                  const SizedBox(height: 8),
+
+                  // Preset Pilihan Alamat Server Cepat (Scrollable Chips)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildUrlPresetChip(
+                          '🌐 Cloudflare Online',
+                          'https://pilot-omaha-korea-limousines.trycloudflare.com',
+                          mangaProvider,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildUrlPresetChip(
+                          '📶 Hotspot PC',
+                          'http://192.168.137.1:4567',
+                          mangaProvider,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildUrlPresetChip(
+                          '💻 Localhost',
+                          'http://127.0.0.1:4567',
+                          mangaProvider,
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     '💡 Tips: Gunakan URL Cloudflare jika di luar rumah, atau http://192.168.137.1:4567 jika HP terhubung langsung ke Hotspot PC (lebih cepat & stabil tanpa expired).',
@@ -293,6 +321,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: DropdownButton<String>(
                           value: mangaProvider.suwayomiSourceId,
                           isExpanded: true,
+                          menuMaxHeight: 350,
+                          borderRadius: BorderRadius.circular(14),
                           dropdownColor: AppTheme.surfaceColor,
                           icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.primaryColor),
                           items: mangaProvider.suwayomiSources.map((source) {
@@ -326,6 +356,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               mangaProvider.setSuwayomiSource(selected.id, selected.name);
                             }
                           },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Tombol Buka Scroll Box Resmi
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => showServerSourcePickerSheet(context),
+                        icon: const Icon(Icons.list_alt_rounded, size: 18, color: AppTheme.primaryColor),
+                        label: const Text('Buka Scroll Box Daftar Sumber & Server'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.primaryColor,
+                          side: BorderSide(color: AppTheme.primaryColor.withOpacity(0.4)),
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -571,6 +617,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Saya 18+ Tahun'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUrlPresetChip(String label, String url, MangaProvider provider) {
+    final isSelected = provider.suwayomiUrl.trim().toLowerCase() == url.trim().toLowerCase();
+    return GestureDetector(
+      onTap: () async {
+        _suwayomiUrlController.text = url;
+        provider.setSuwayomiUrl(url);
+        await provider.testSuwayomiConnection(customUrl: url);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryColor.withOpacity(0.2) : AppTheme.cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.08),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
+          ),
+        ),
       ),
     );
   }

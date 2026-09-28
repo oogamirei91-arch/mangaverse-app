@@ -72,13 +72,13 @@ class SuwayomiService {
               .where((s) {
                 if (s.id == '0') return false;
                 final l = s.lang.toLowerCase();
-                return l == 'id' || l == 'en' || l == 'eng';
+                return l == 'id' || l == 'en' || l == 'eng' || l == 'all';
               })
               .toList();
           return (
             success: true,
             sourceCount: sources.length,
-            message: 'Terhubung! Ditemukan ${sources.length} ekstensi sumber (ID & EN).',
+            message: 'Terhubung! Ditemukan ${sources.length} ekstensi sumber (ID, EN & Galeri).',
             sources: sources,
           );
         } else {
@@ -124,7 +124,7 @@ class SuwayomiService {
           .where((s) {
             if (s.id == '0') return false;
             final l = s.lang.toLowerCase();
-            return l == 'id' || l == 'en' || l == 'eng';
+            return l == 'id' || l == 'en' || l == 'eng' || l == 'all';
           })
           .toList();
     }

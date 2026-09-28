@@ -56,23 +56,32 @@ class MangaProvider extends ChangeNotifier {
   bool get isSafeSearchEnabled => _isSafeSearchEnabled;
   String? get errorMessage => _errorMessage;
 
-  // Filter Sumber Komik: HANYA BAHASA ID & EN (sumber bahasa lain tidak dimasukkan)
+  // Filter Sumber Komik: BAHASA ID, EN & SEMUA (ALL / GALERI / COSPLAY)
   // Serta difilter berdasarkan status Safe Search (Safe vs 18+)
   List<SuwayomiSourceModel> get suwayomiSources {
     final online = _suwayomiSources.where((s) {
       if (s.id == '0') return false;
       final l = s.lang.toLowerCase();
-      return l == 'id' || l == 'en' || l == 'eng';
+      return l == 'id' || l == 'en' || l == 'eng' || l == 'all';
     }).toList();
 
     // Saat Safe Search ON: sembunyikan sumber khusus 18+ murni
-    // Saat Safe Search OFF (Filter 18+ ON): tampilkan semua sumber ID & EN termasuk 18+
+    // Saat Safe Search OFF (Filter 18+ ON): tampilkan semua sumber ID, EN & ALL termasuk Cosplay/18+
     if (_isSafeSearchEnabled) {
       final safe = online.where((s) => !s.isDedicatedNsfw).toList();
       return safe.isNotEmpty ? safe : online;
     } else {
       return online;
     }
+  }
+
+  /// Seluruh sumber ID, EN, ALL tanpa terpengaruh filter safe search (untuk tab/picker)
+  List<SuwayomiSourceModel> get allSuwayomiSourcesRaw {
+    return _suwayomiSources.where((s) {
+      if (s.id == '0') return false;
+      final l = s.lang.toLowerCase();
+      return l == 'id' || l == 'en' || l == 'eng' || l == 'all';
+    }).toList();
   }
 
   // Getters Suwayomi & Server
@@ -155,11 +164,11 @@ class MangaProvider extends ChangeNotifier {
     _suwayomiConnectionStatus = result.message;
 
     if (result.success) {
-      // HANYA simpan sumber bahasa ID dan EN, buang semua bahasa lainnya
+      // Simpan sumber bahasa ID, EN, dan ALL (Cosplay & Galeri), buang bahasa asing lainnya
       _suwayomiSources = result.sources.where((s) {
         if (s.id == '0') return false;
         final l = s.lang.toLowerCase();
-        return l == 'id' || l == 'en' || l == 'eng';
+        return l == 'id' || l == 'en' || l == 'eng' || l == 'all';
       }).toList();
       final availableSources = suwayomiSources;
 
@@ -263,7 +272,7 @@ class MangaProvider extends ChangeNotifier {
     }
   }
 
-  /// Ganti filter bahasa (id = Indonesia, en = Inggris, all = Semua ID & EN)
+  /// Ganti filter bahasa (id = Indonesia, en = Inggris, all = Semua, gallery = Cosplay & Galeri)
   void setLanguageFilter(String lang) {
     if (_selectedLanguage != lang) {
       _selectedLanguage = lang;
@@ -282,6 +291,12 @@ class MangaProvider extends ChangeNotifier {
           orElse: () => available.first,
         );
         setSuwayomiSource(enSource.id, enSource.displayName);
+      } else if (lang == 'gallery' || lang == 'cosplay') {
+        final galSource = available.firstWhere(
+          (s) => s.name.toLowerCase().contains('cosplay') || s.lang.toLowerCase() == 'all',
+          orElse: () => available.first,
+        );
+        setSuwayomiSource(galSource.id, galSource.displayName);
       } else {
         fetchHomeData();
       }

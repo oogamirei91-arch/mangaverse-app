@@ -204,6 +204,8 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                 child: DropdownButton<String>(
                   value: provider.suwayomiSourceId,
                   isExpanded: true,
+                  menuMaxHeight: 350,
+                  borderRadius: BorderRadius.circular(14),
                   dropdownColor: AppTheme.surfaceColor,
                   icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.primaryColor),
                   items: provider.suwayomiSources.map((source) {
