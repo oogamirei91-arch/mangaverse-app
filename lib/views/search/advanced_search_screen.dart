@@ -32,8 +32,16 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
     'Slice of Life': 'Slice of Life',
     'Supernatural': 'Supernatural',
     'Sports': 'Sports',
+    'Historical': 'Historical',
+    'Martial Arts': 'Martial Arts',
+    'Mecha': 'Mecha',
+    'School Life': 'School Life',
+    'Thriller': 'Thriller',
     'Ecchi': 'Ecchi',
     'Harem': 'Harem',
+    'Smut': 'Smut',
+    'Gore': 'Gore',
+    'Doujinshi': 'Doujinshi',
   };
 
   @override
@@ -292,34 +300,53 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: _popularGenres.entries.map((entry) {
-              final isSelected = provider.advSelectedGenreIds.contains(entry.value);
-              final isMatureTag = ['Ecchi', 'Smut', 'Gore', 'Doujinshi', 'Harem'].contains(entry.key);
-
-              return FilterChip(
-                label: Text(entry.key),
-                selected: isSelected,
-                onSelected: (_) => provider.toggleAdvGenre(entry.value),
-                selectedColor: isMatureTag
-                    ? Colors.redAccent.withOpacity(0.35)
-                    : AppTheme.primaryColor.withOpacity(0.3),
-                checkmarkColor: isMatureTag ? Colors.redAccent : AppTheme.primaryColor,
+            children: [
+              FilterChip(
+                label: const Text('🌐 Semua Genre (All)'),
+                selected: provider.advSelectedGenreIds.isEmpty,
+                onSelected: (_) => provider.selectAllGenres(),
+                selectedColor: AppTheme.primaryColor.withOpacity(0.3),
+                checkmarkColor: AppTheme.primaryColor,
                 backgroundColor: AppTheme.cardColor,
                 labelStyle: GoogleFonts.plusJakartaSans(
-                  color: isSelected
-                      ? Colors.white
-                      : (isMatureTag ? Colors.redAccent.withOpacity(0.8) : AppTheme.textSecondary),
+                  color: provider.advSelectedGenreIds.isEmpty ? Colors.white : AppTheme.textSecondary,
                   fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: provider.advSelectedGenreIds.isEmpty ? FontWeight.w700 : FontWeight.w500,
                 ),
                 side: BorderSide(
-                  color: isSelected
-                      ? (isMatureTag ? Colors.redAccent : AppTheme.primaryColor)
-                      : (isMatureTag ? Colors.redAccent.withOpacity(0.2) : Colors.white.withOpacity(0.06)),
+                  color: provider.advSelectedGenreIds.isEmpty ? AppTheme.primaryColor : Colors.white.withOpacity(0.06),
                 ),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              );
-            }).toList(),
+              ),
+              ..._popularGenres.entries.map((entry) {
+                final isSelected = provider.advSelectedGenreIds.contains(entry.value);
+                final isMatureTag = ['Ecchi', 'Smut', 'Gore', 'Doujinshi', 'Harem'].contains(entry.key);
+
+                return FilterChip(
+                  label: Text(entry.key),
+                  selected: isSelected,
+                  onSelected: (_) => provider.toggleAdvGenre(entry.value),
+                  selectedColor: isMatureTag
+                      ? Colors.redAccent.withOpacity(0.35)
+                      : AppTheme.primaryColor.withOpacity(0.3),
+                  checkmarkColor: isMatureTag ? Colors.redAccent : AppTheme.primaryColor,
+                  backgroundColor: AppTheme.cardColor,
+                  labelStyle: GoogleFonts.plusJakartaSans(
+                    color: isSelected
+                        ? Colors.white
+                        : (isMatureTag ? Colors.redAccent.withOpacity(0.8) : AppTheme.textSecondary),
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                  side: BorderSide(
+                    color: isSelected
+                        ? (isMatureTag ? Colors.redAccent : AppTheme.primaryColor)
+                        : (isMatureTag ? Colors.redAccent.withOpacity(0.2) : Colors.white.withOpacity(0.06)),
+                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                );
+              }),
+            ],
           ),
           const SizedBox(height: 16),
 

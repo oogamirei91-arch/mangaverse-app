@@ -389,11 +389,21 @@ class MangaProvider extends ChangeNotifier {
   }
 
   void toggleAdvGenre(String genreId) {
+    if (genreId == 'all') {
+      _advSelectedGenreIds.clear();
+      notifyListeners();
+      return;
+    }
     if (_advSelectedGenreIds.contains(genreId)) {
       _advSelectedGenreIds.remove(genreId);
     } else {
       _advSelectedGenreIds.add(genreId);
     }
+    notifyListeners();
+  }
+
+  void selectAllGenres() {
+    _advSelectedGenreIds.clear();
     notifyListeners();
   }
 
