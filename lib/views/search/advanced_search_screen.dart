@@ -235,29 +235,6 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                 _buildRatingFilterChip(provider, 'pornographic', '🔴 18+ Pornographic'),
               ],
             ),
-            const SizedBox(height: 14),
-          ] else ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF06D6A0).withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF06D6A0).withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.shield_rounded, size: 16, color: Color(0xFF06D6A0)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Safe Search Aktif. Konten 18+ disaring. Ubah di Pengaturan jika ingin membuka.',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
 
           // E. Pilihan Genre (Multi-select termasuk Ecchi, Smut, Gore, Doujinshi)

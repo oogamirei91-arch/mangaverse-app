@@ -10,6 +10,7 @@ class ChapterProvider extends ChangeNotifier {
   bool _isAscending = true; // true = 1 -> end, false = end -> 1
   String _chapterLanguage = 'id';
   String? _errorMessage;
+  List<String>? _contentRatings;
 
   List<ChapterModel> get chapters => _isAscending ? _chapters : _chapters.reversed.toList();
   bool get isLoading => _isLoading;
@@ -18,9 +19,17 @@ class ChapterProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   /// Memuat daftar chapter untuk komik tertentu disesuaikan dengan bahasa aktif
-  Future<void> fetchChapters(String mangaId, {String? defaultLanguage}) async {
+  Future<void> fetchChapters(
+    String mangaId, {
+    String? defaultLanguage,
+    List<String>? contentRatings,
+    bool autoFallback = true,
+  }) async {
     if (defaultLanguage != null && defaultLanguage.isNotEmpty) {
       _chapterLanguage = defaultLanguage;
+    }
+    if (contentRatings != null) {
+      _contentRatings = contentRatings;
     }
 
     _isLoading = true;
@@ -32,16 +41,19 @@ class ChapterProvider extends ChangeNotifier {
         mangaId,
         language: _chapterLanguage,
         limit: 100,
+        contentRatings: _contentRatings,
       );
 
-      // Jika chapter bahasa Indonesia kosong dan user memilih ID, coba fallback ke bahasa Inggris
-      if (_chapters.isEmpty && _chapterLanguage == 'id') {
-        _chapters = await _service.getMangaChapters(
+      // Jika chapter bahasa Indonesia kosong dan user memilih ID serta autoFallback aktif
+      if (_chapters.isEmpty && _chapterLanguage == 'id' && autoFallback) {
+        final enChapters = await _service.getMangaChapters(
           mangaId,
           language: 'en',
           limit: 100,
+          contentRatings: _contentRatings,
         );
-        if (_chapters.isNotEmpty) {
+        if (enChapters.isNotEmpty) {
+          _chapters = enChapters;
           _chapterLanguage = 'en';
         }
       }
@@ -58,8 +70,16 @@ class ChapterProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void changeLanguage(String mangaId, String lang) {
+  void changeLanguage(String mangaId, String lang, {List<String>? contentRatings}) {
     _chapterLanguage = lang;
-    fetchChapters(mangaId);
+    if (contentRatings != null) {
+      _contentRatings = contentRatings;
+    }
+    fetchChapters(
+      mangaId,
+      defaultLanguage: lang,
+      contentRatings: _contentRatings,
+      autoFallback: false,
+    );
   }
 }

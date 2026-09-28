@@ -27,10 +27,12 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final selectedLang = context.read<MangaProvider>().selectedLanguage;
+      final mangaProvider = context.read<MangaProvider>();
+      final selectedLang = mangaProvider.selectedLanguage;
       context.read<ChapterProvider>().fetchChapters(
         widget.manga.id,
         defaultLanguage: selectedLang,
+        contentRatings: mangaProvider.currentContentRatings,
       );
     });
   }
@@ -351,7 +353,19 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
+
+                  // Language selector chips
+                  Row(
+                    children: [
+                      _buildChapterLangChip(context, chapterProvider, 'id', '🇮🇩 ID'),
+                      const SizedBox(width: 8),
+                      _buildChapterLangChip(context, chapterProvider, 'en', '🇬🇧 EN'),
+                      const SizedBox(width: 8),
+                      _buildChapterLangChip(context, chapterProvider, 'all', '🌐 Semua'),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
 
                   // List Chapter Items
                   if (chapterProvider.isLoading)
@@ -362,13 +376,106 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                       ),
                     )
                   else if (chapterProvider.chapters.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Text(
-                          'Belum ada chapter tersedia untuk bahasa ini.',
-                          style: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary),
-                        ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.06)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.translate_rounded,
+                              size: 32,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            chapterProvider.chapterLanguage == 'id'
+                                ? 'Chapter Bahasa Indonesia Belum Tersedia'
+                                : (chapterProvider.chapterLanguage == 'en'
+                                    ? 'Chapter Bahasa Inggris Belum Tersedia'
+                                    : 'Belum Ada Chapter Tersedia'),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            chapterProvider.chapterLanguage == 'id'
+                                ? 'Belum ada grup translasi yang mengunggah chapter Bahasa Indonesia untuk judul ini di server MangaDex. Silakan baca chapter versi Bahasa Inggris atau tampilkan semua bahasa.'
+                                : 'Tidak ditemukan chapter untuk bahasa yang dipilih pada komik ini.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              height: 1.5,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              if (chapterProvider.chapterLanguage != 'en')
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    chapterProvider.changeLanguage(
+                                      widget.manga.id,
+                                      'en',
+                                      contentRatings: context.read<MangaProvider>().currentContentRatings,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.language_rounded, size: 16),
+                                  label: const Text('Baca Bahasa Inggris (EN)'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryColor,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    textStyle: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              if (chapterProvider.chapterLanguage != 'all')
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    chapterProvider.changeLanguage(
+                                      widget.manga.id,
+                                      'all',
+                                      contentRatings: context.read<MangaProvider>().currentContentRatings,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.public_rounded, size: 16),
+                                  label: const Text('Tampilkan Semua Bahasa'),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    textStyle: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                       ),
                     )
                   else
@@ -468,6 +575,37 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
           color: color == Colors.white24 ? Colors.white : color,
         ),
       ),
+    );
+  }
+
+  Widget _buildChapterLangChip(
+    BuildContext context,
+    ChapterProvider chapterProvider,
+    String lang,
+    String label,
+  ) {
+    final isSelected = chapterProvider.chapterLanguage == lang;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) {
+        chapterProvider.changeLanguage(
+          widget.manga.id,
+          lang,
+          contentRatings: context.read<MangaProvider>().currentContentRatings,
+        );
+      },
+      selectedColor: AppTheme.primaryColor,
+      backgroundColor: AppTheme.surfaceColor,
+      labelStyle: GoogleFonts.plusJakartaSans(
+        color: isSelected ? Colors.white : AppTheme.textSecondary,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        fontSize: 12,
+      ),
+      side: BorderSide(
+        color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.06),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     );
   }
 }

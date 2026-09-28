@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/manga_provider.dart';
 import '../../widgets/manga_card.dart';
+import 'popular_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -143,12 +144,40 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: AppTheme.textPrimary,
                       ),
                     ),
-                    Text(
-                      _getTypeDisplayName(mangaProvider.selectedComicType),
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PopularListScreen(
+                              comicType: mangaProvider.selectedComicType,
+                              language: mangaProvider.selectedLanguage,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _getTypeDisplayName(mangaProvider.selectedComicType),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 12,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
