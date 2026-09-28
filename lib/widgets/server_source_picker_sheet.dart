@@ -65,18 +65,18 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
     }).toList();
 
     return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
       padding: EdgeInsets.only(
         top: 16,
         left: 20,
         right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
       ),
       decoration: const BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Drag handle atas
@@ -246,13 +246,13 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
           ),
           const SizedBox(height: 6),
 
-          Container(
-            height: 320,
-            decoration: BoxDecoration(
-              color: AppTheme.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
-            ),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
             child: filteredSources.isEmpty
                 ? Center(
                     child: Column(
@@ -409,6 +409,7 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                     ),
                   ),
           ),
+        ),
         ],
       ),
     );

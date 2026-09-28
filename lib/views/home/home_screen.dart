@@ -277,82 +277,230 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Filter Gabungan: Dropdown Tipe (Manga/Manhwa/Manhua) & Pilihan Bahasa
   Widget _buildTypeAndLanguageFilters(BuildContext context, MangaProvider provider) {
     if (provider.isSuwayomiActive) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => showServerSourcePickerSheet(context),
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceColor,
+      final availableSources = provider.isSafeSearchEnabled
+          ? provider.suwayomiSources
+          : provider.allSuwayomiSourcesRaw;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Kartu Server Suwayomi Aktif (Ketuk untuk ganti modal sheet)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => showServerSourcePickerSheet(context),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.secondaryColor.withOpacity(0.3)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceColor,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.secondaryColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.secondaryColor.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.hub_rounded, color: AppTheme.secondaryColor, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Server Suwayomi Aktif (Ketuk untuk ganti)',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.secondaryColor,
+                            ),
+                          ),
+                          Text(
+                            provider.suwayomiSourceName ?? 'Pilih Sumber Komik',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Tombol Scroll Box Server
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.swap_vert_rounded, color: AppTheme.primaryColor, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Ganti Server',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: Row(
+          ),
+
+          if (availableSources.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            // Header Sumber Cepat dengan indikator jumlah sumber
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.secondaryColor.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.hub_rounded, color: AppTheme.secondaryColor, size: 18),
+                Row(
+                  children: [
+                    const Icon(Icons.swipe_rounded, size: 14, color: AppTheme.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Pilih Cepat (${availableSources.length} Sumber - Geser ➔):',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Server Suwayomi Aktif (Ketuk untuk ganti)',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.secondaryColor,
-                        ),
-                      ),
-                      Text(
-                        provider.suwayomiSourceName ?? 'Pilih Sumber Komik',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Tombol Scroll Box Server
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.swap_vert_rounded, color: AppTheme.primaryColor, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Ganti Server',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                    ],
+                GestureDetector(
+                  onTap: () => showServerSourcePickerSheet(context),
+                  child: Text(
+                    'Lihat Semua',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ),
+            const SizedBox(height: 6),
+            // KOTAK SCROLL HORIZONTAL (HORIZONTAL SCROLL PILLS)
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: availableSources.length + 1,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  if (index == availableSources.length) {
+                    return GestureDetector(
+                      onTap: () => showServerSourcePickerSheet(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.cardColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppTheme.primaryColor.withOpacity(0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.more_horiz_rounded, size: 16, color: AppTheme.primaryColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Lainnya...',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final source = availableSources[index];
+                  final isCurrent = source.id == provider.suwayomiSourceId;
+                  final langUpper = source.lang.toUpperCase();
+
+                  return GestureDetector(
+                    onTap: () {
+                      provider.setSuwayomiSource(source.id, source.name);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isCurrent
+                            ? AppTheme.primaryColor
+                            : AppTheme.cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isCurrent
+                              ? AppTheme.primaryColor
+                              : Colors.white.withOpacity(0.08),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isCurrent) ...[
+                            const Icon(Icons.check_circle_rounded, size: 13, color: Colors.white),
+                            const SizedBox(width: 4),
+                          ] else ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: langUpper == 'ID'
+                                    ? Colors.redAccent.withOpacity(0.25)
+                                    : (langUpper == 'EN' ? Colors.blueAccent.withOpacity(0.25) : Colors.purpleAccent.withOpacity(0.25)),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                langUpper,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: langUpper == 'ID'
+                                      ? Colors.redAccent
+                                      : (langUpper == 'EN' ? Colors.lightBlueAccent : Colors.purpleAccent),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                          ],
+                          Text(
+                            source.displayName,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                              color: isCurrent ? Colors.white : AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
       );
     }
 

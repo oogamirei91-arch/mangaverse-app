@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/manga_provider.dart';
 import '../../widgets/manga_card.dart';
+import '../../widgets/server_source_picker_sheet.dart';
 
 class AdvancedSearchScreen extends StatefulWidget {
   const AdvancedSearchScreen({super.key});
@@ -190,56 +191,102 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 0. Sumber Komik yang Dicari
+          // 0. Sumber Komik yang Dicari (Horizontal Scroll + Modal Sheet)
           if (provider.suwayomiSources.isNotEmpty) ...[
-            _buildFilterLabel('Sumber Komik yang Dicari:'),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppTheme.cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: provider.suwayomiSourceId,
-                  isExpanded: true,
-                  menuMaxHeight: 350,
-                  borderRadius: BorderRadius.circular(14),
-                  dropdownColor: AppTheme.surfaceColor,
-                  icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.primaryColor),
-                  items: provider.suwayomiSources.map((source) {
-                    return DropdownMenuItem(
-                      value: source.id,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildFilterLabel('Sumber Komik:'),
+                GestureDetector(
+                  onTap: () => showServerSourcePickerSheet(context),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Semua Sumber (29)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppTheme.primaryColor),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            // KOTAK SCROLL HORIZONTAL SUMBER KOMIK
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: (provider.isSafeSearchEnabled ? provider.suwayomiSources : provider.allSuwayomiSourcesRaw).length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final sources = provider.isSafeSearchEnabled ? provider.suwayomiSources : provider.allSuwayomiSourcesRaw;
+                  final source = sources[index];
+                  final isCurrent = source.id == provider.suwayomiSourceId;
+                  final langUpper = source.lang.toUpperCase();
+
+                  return GestureDetector(
+                    onTap: () {
+                      provider.setSuwayomiSource(source.id, source.name);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isCurrent ? AppTheme.primaryColor : AppTheme.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isCurrent ? AppTheme.primaryColor : Colors.white.withOpacity(0.08),
+                        ),
+                      ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            source.isDedicatedNsfw ? Icons.warning_amber_rounded : Icons.extension_rounded,
-                            size: 16,
-                            color: source.isDedicatedNsfw ? Colors.redAccent : AppTheme.primaryColor,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              source.displayName,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: source.isDedicatedNsfw ? const Color(0xFFFF6B6B) : Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                          if (isCurrent) ...[
+                            const Icon(Icons.check_circle_rounded, size: 12, color: Colors.white),
+                            const SizedBox(width: 4),
+                          ] else ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: langUpper == 'ID'
+                                    ? Colors.redAccent.withOpacity(0.2)
+                                    : (langUpper == 'EN' ? Colors.blueAccent.withOpacity(0.2) : Colors.purpleAccent.withOpacity(0.2)),
+                                borderRadius: BorderRadius.circular(4),
                               ),
+                              child: Text(
+                                langUpper,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: langUpper == 'ID'
+                                      ? Colors.redAccent
+                                      : (langUpper == 'EN' ? Colors.lightBlueAccent : Colors.purpleAccent),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                          ],
+                          Text(
+                            source.displayName,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                              color: isCurrent ? Colors.white : AppTheme.textPrimary,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (selectedId) {
-                    if (selectedId != null) {
-                      final selected = provider.suwayomiSources.firstWhere((s) => s.id == selectedId);
-                      provider.setSuwayomiSource(selected.id, selected.name);
-                    }
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 14),

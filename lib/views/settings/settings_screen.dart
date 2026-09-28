@@ -15,6 +15,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _suwayomiUrlController = TextEditingController();
+  final ScrollController _sourceScrollController = ScrollController();
+  String _sourceFilterCategory = 'all';
 
   @override
   void initState() {
@@ -26,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _suwayomiUrlController.dispose();
+    _sourceScrollController.dispose();
     super.dispose();
   }
 
@@ -33,6 +36,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final mangaProvider = context.watch<MangaProvider>();
+
+    final allSources = mangaProvider.isSafeSearchEnabled
+        ? mangaProvider.suwayomiSources
+        : mangaProvider.allSuwayomiSourcesRaw;
+    final filteredSettingsSources = allSources.where((s) {
+      if (_sourceFilterCategory == 'id' && s.lang.toLowerCase() != 'id') return false;
+      if (_sourceFilterCategory == 'en' && s.lang.toLowerCase() != 'en' && s.lang.toLowerCase() != 'eng') return false;
+      if (_sourceFilterCategory == 'cosplay' &&
+          s.lang.toLowerCase() != 'all' &&
+          !s.name.toLowerCase().contains('cosplay') &&
+          !s.name.toLowerCase().contains('photo')) {
+        return false;
+      }
+      return true;
+    }).toList();
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -303,74 +321,186 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
 
                   // Pilihan Sumber/Ekstensi Aktif
+                  // Pilihan Sumber/Ekstensi Aktif (Kotak Scroll In-Card)
                   if (mangaProvider.suwayomiSources.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    Text(
-                      'Pilih Sumber Komik Aktif:',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textSecondary),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: mangaProvider.suwayomiSourceId,
-                          isExpanded: true,
-                          menuMaxHeight: 350,
-                          borderRadius: BorderRadius.circular(14),
-                          dropdownColor: AppTheme.surfaceColor,
-                          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.primaryColor),
-                          items: mangaProvider.suwayomiSources.map((source) {
-                            return DropdownMenuItem(
-                              value: source.id,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    source.isNsfw ? Icons.warning_amber_rounded : Icons.extension_rounded,
-                                    size: 16,
-                                    color: source.isNsfw ? Colors.redAccent : AppTheme.primaryColor,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      source.displayName,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        color: source.isNsfw ? const Color(0xFFFF6B6B) : Colors.white,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (selectedId) {
-                            if (selectedId != null) {
-                              final selected = mangaProvider.suwayomiSources.firstWhere((s) => s.id == selectedId);
-                              mangaProvider.setSuwayomiSource(selected.id, selected.name);
-                            }
-                          },
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Pilih Sumber Komik Aktif:',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${filteredSettingsSources.length} Sumber',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              color: AppTheme.secondaryColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Kategori Filter (Semua, ID, EN, Cosplay & Galeri)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildSourceCategoryPill('all', 'Semua'),
+                          const SizedBox(width: 6),
+                          _buildSourceCategoryPill('id', '🇮🇩 Indonesia'),
+                          const SizedBox(width: 6),
+                          _buildSourceCategoryPill('en', '🇬🇧 English'),
+                          const SizedBox(width: 6),
+                          _buildSourceCategoryPill('cosplay', '📸 Cosplay & Galeri'),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // Tombol Buka Scroll Box Resmi
+
+                    // KOTAK SCROLL SUMBER EMBEDDED DENGAN SCROLLBAR
+                    Container(
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      child: filteredSettingsSources.isEmpty
+                          ? Center(
+                              child: Text(
+                                'Tidak ada sumber dalam kategori ini',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white54),
+                              ),
+                            )
+                          : Scrollbar(
+                              controller: _sourceScrollController,
+                              thumbVisibility: true,
+                              trackVisibility: true,
+                              thickness: 5,
+                              radius: const Radius.circular(8),
+                              child: ListView.separated(
+                                controller: _sourceScrollController,
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                                itemCount: filteredSettingsSources.length,
+                                separatorBuilder: (_, __) => Divider(
+                                  color: Colors.white.withOpacity(0.04),
+                                  height: 1,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final source = filteredSettingsSources[index];
+                                  final isCurrent = source.id == mangaProvider.suwayomiSourceId;
+                                  final langUpper = source.lang.toUpperCase();
+
+                                  return InkWell(
+                                    onTap: () {
+                                      mangaProvider.setSuwayomiSource(source.id, source.name);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Sumber aktif diubah: ${source.displayName}'),
+                                          duration: const Duration(seconds: 1),
+                                          backgroundColor: AppTheme.primaryColor,
+                                        ),
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: isCurrent
+                                            ? AppTheme.primaryColor.withOpacity(0.15)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: isCurrent
+                                            ? Border.all(color: AppTheme.primaryColor.withOpacity(0.4))
+                                            : null,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            source.isDedicatedNsfw
+                                                ? Icons.warning_amber_rounded
+                                                : (source.name.toLowerCase().contains('cosplay') || source.name.toLowerCase().contains('photo')
+                                                    ? Icons.camera_alt_rounded
+                                                    : Icons.auto_stories_rounded),
+                                            size: 16,
+                                            color: isCurrent
+                                                ? AppTheme.primaryColor
+                                                : (source.isDedicatedNsfw ? Colors.redAccent : Colors.white60),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                            decoration: BoxDecoration(
+                                              color: langUpper == 'ID'
+                                                  ? Colors.redAccent.withOpacity(0.2)
+                                                  : (langUpper == 'EN' ? Colors.blueAccent.withOpacity(0.2) : Colors.purpleAccent.withOpacity(0.2)),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              langUpper,
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w800,
+                                                color: langUpper == 'ID'
+                                                    ? Colors.redAccent
+                                                    : (langUpper == 'EN' ? Colors.lightBlueAccent : Colors.purpleAccent),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              source.displayName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 12,
+                                                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                                                color: isCurrent ? Colors.white : AppTheme.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                          if (isCurrent)
+                                            const Icon(
+                                              Icons.check_circle_rounded,
+                                              color: AppTheme.primaryColor,
+                                              size: 18,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Tombol Buka Scroll Box Layar Penuh (85% Layar)
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () => showServerSourcePickerSheet(context),
-                        icon: const Icon(Icons.list_alt_rounded, size: 18, color: AppTheme.primaryColor),
-                        label: const Text('Buka Scroll Box Daftar Sumber & Server'),
+                        icon: const Icon(Icons.fullscreen_rounded, size: 18, color: AppTheme.primaryColor),
+                        label: const Text('Buka Modal Lengkap (Layar Penuh)'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.primaryColor,
                           side: BorderSide(color: AppTheme.primaryColor.withOpacity(0.4)),
-                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -644,6 +774,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
             fontSize: 11,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSourceCategoryPill(String key, String label) {
+    final isSelected = _sourceFilterCategory == key;
+    return GestureDetector(
+      onTap: () => setState(() => _sourceFilterCategory = key),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryColor : AppTheme.cardColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.08),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? Colors.white : AppTheme.textSecondary,
           ),
         ),
       ),
