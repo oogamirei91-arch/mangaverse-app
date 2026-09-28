@@ -8,12 +8,23 @@ import '../models/suwayomi_source_model.dart';
 class SuwayomiService {
   final http.Client _client = http.Client();
 
-  /// Membersihkan URL agar valid (menghapus trailing slash, memastikan http/https)
+  /// Membersihkan URL agar valid (menghapus trailing slash, memastikan http/https, membersihkan subpath)
   String cleanUrl(String rawUrl) {
     String trimmed = rawUrl.trim();
     if (trimmed.isEmpty) return 'http://10.0.2.2:4567';
     if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
       trimmed = 'http://$trimmed';
+    }
+    while (trimmed.endsWith('/')) {
+      trimmed = trimmed.substring(0, trimmed.length - 1);
+    }
+    // Jika user tidak sengaja menyalin URL lengkap dengan subpath
+    if (trimmed.endsWith('/api/v1/source/list')) {
+      trimmed = trimmed.substring(0, trimmed.length - '/api/v1/source/list'.length);
+    } else if (trimmed.endsWith('/api/v1')) {
+      trimmed = trimmed.substring(0, trimmed.length - '/api/v1'.length);
+    } else if (trimmed.endsWith('/api')) {
+      trimmed = trimmed.substring(0, trimmed.length - '/api'.length);
     }
     while (trimmed.endsWith('/')) {
       trimmed = trimmed.substring(0, trimmed.length - 1);
@@ -31,14 +42,46 @@ class SuwayomiService {
       final res = await _client.get(uri).timeout(const Duration(seconds: 15));
 
       if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
-        final sources = data.map((item) => SuwayomiSourceModel.fromJson(item)).toList();
-        return (
-          success: true,
-          sourceCount: sources.length,
-          message: 'Terhubung! Ditemukan ${sources.length} ekstensi sumber.',
-          sources: sources,
-        );
+        final bodyTrimmed = res.body.trim();
+        // Cegah FormatException jika server merespons halaman HTML (misal redirect ISP / WebUI SPA)
+        if (bodyTrimmed.startsWith('<') || (!bodyTrimmed.startsWith('[') && !bodyTrimmed.startsWith('{'))) {
+          return (
+            success: false,
+            sourceCount: 0,
+            message: 'Respons berupa halaman HTML, bukan data API. Pastikan URL server tepat (tanpa /api/v1).',
+            sources: <SuwayomiSourceModel>[],
+          );
+        }
+
+        dynamic decoded;
+        try {
+          decoded = jsonDecode(bodyTrimmed);
+        } catch (e) {
+          final preview = bodyTrimmed.length > 50 ? bodyTrimmed.substring(0, 50) : bodyTrimmed;
+          return (
+            success: false,
+            sourceCount: 0,
+            message: 'Gagal parse JSON ($preview...). Error: $e',
+            sources: <SuwayomiSourceModel>[],
+          );
+        }
+
+        if (decoded is List) {
+          final sources = decoded.map((item) => SuwayomiSourceModel.fromJson(item)).toList();
+          return (
+            success: true,
+            sourceCount: sources.length,
+            message: 'Terhubung! Ditemukan ${sources.length} ekstensi sumber.',
+            sources: sources,
+          );
+        } else {
+          return (
+            success: false,
+            sourceCount: 0,
+            message: 'Format data Suwayomi tidak sesuai.',
+            sources: <SuwayomiSourceModel>[],
+          );
+        }
       } else {
         return (
           success: false,
