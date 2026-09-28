@@ -35,6 +35,7 @@ class ReaderProvider extends ChangeNotifier {
   /// Memuat halaman-halaman dari sebuah chapter langsung dari Suwayomi
   Future<void> loadChapter(
     String chapterId, {
+    int? chapterIndex,
     String? mangaId,
     String? serverType,
     String? suwayomiUrl,
@@ -47,7 +48,12 @@ class ReaderProvider extends ChangeNotifier {
     try {
       final url = suwayomiUrl ?? 'https://pilot-omaha-korea-limousines.trycloudflare.com';
       final mId = mangaId ?? '1';
-      _pagesData = await _suwayomiService.getChapterPages(url, mId, chapterId);
+      _pagesData = await _suwayomiService.getChapterPages(
+        url,
+        mId,
+        chapterId,
+        chapterIndex: chapterIndex,
+      );
 
       if (_pagesData != null) {
         _pageUrls = _pagesData!.getPageUrls(isDataSaver: _isDataSaver);

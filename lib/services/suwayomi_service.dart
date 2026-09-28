@@ -240,10 +240,14 @@ class SuwayomiService {
   Future<ChapterPagesModel> getChapterPages(
     String serverUrl,
     String mangaId,
-    String chapterId,
-  ) async {
+    String chapterIndexOrId, {
+    int? chapterIndex,
+  }) async {
     final base = cleanUrl(serverUrl);
-    final uri = Uri.parse('$base/api/v1/manga/$mangaId/chapter/$chapterId');
+    // Suwayomi API v1 mewajibkan chapterIndex (misal 1, 2, 539), BUKAN chapterId database (misal 4858).
+    String targetIndex = (chapterIndex != null && chapterIndex > 0)
+        ? chapterIndex.toString()
+        : chapterIndexOrId;
 
     int attempts = 0;
     const maxAttempts = 2;
@@ -252,6 +256,7 @@ class SuwayomiService {
     while (attempts < maxAttempts) {
       attempts++;
       try {
+        final uri = Uri.parse('$base/api/v1/manga/$mangaId/chapter/$targetIndex');
         final res = await _client.get(uri).timeout(const Duration(seconds: 25));
 
         if (res.statusCode == 200) {
@@ -267,7 +272,7 @@ class SuwayomiService {
           if (pageCount > 0) {
             final List<String> pageUrls = List.generate(
               pageCount,
-              (index) => '$base/api/v1/manga/$mangaId/chapter/$chapterId/page/$index',
+              (index) => '$base/api/v1/manga/$mangaId/chapter/$targetIndex/page/$index',
             );
 
             return ChapterPagesModel(
@@ -283,6 +288,21 @@ class SuwayomiService {
             throw Exception('Halaman chapter belum tersedia dari situs sumber (pageCount = 0).');
           }
         } else if (res.statusCode == 404) {
+          // Jika 404 dan targetIndex tadinya chapterId (bukan chapter.index),
+          // cari chapter.index sebenarnya dari daftar chapters komik ini secara otomatis
+          if (attempts == 1 && chapterIndex == null) {
+            try {
+              final chapters = await getMangaChapters(serverUrl, mangaId);
+              final match = chapters.firstWhere(
+                (c) => c.id == targetIndex || c.chapter == targetIndex,
+                orElse: () => chapters.first,
+              );
+              if (match.index != null && match.index.toString() != targetIndex) {
+                targetIndex = match.index.toString();
+                continue; // Coba lagi dengan index yang tepat!
+              }
+            } catch (_) {}
+          }
           throw Exception('Chapter tidak ditemukan di situs aslinya (404 Not Found - tautan mati atau telah dihapus).');
         } else if (res.statusCode == 500) {
           final body = res.body.trim();

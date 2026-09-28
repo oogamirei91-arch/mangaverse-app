@@ -256,6 +256,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                                       title: history.chapterTitle,
                                       translatedLanguage: 'id',
                                       pagesCount: history.totalPages,
+                                      index: history.chapterIndex,
                                     ),
                                     mangaTitle: widget.manga.title,
                                     mangaId: widget.manga.id,

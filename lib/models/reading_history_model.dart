@@ -3,6 +3,7 @@ class ReadingHistoryModel {
   final String mangaTitle;
   final String coverUrl;
   final String chapterId;
+  final int? chapterIndex;
   final String chapterNumber;
   final String? chapterTitle;
   final int pageNumber;
@@ -14,6 +15,7 @@ class ReadingHistoryModel {
     required this.mangaTitle,
     required this.coverUrl,
     required this.chapterId,
+    this.chapterIndex,
     required this.chapterNumber,
     this.chapterTitle,
     int? pageNumber,
@@ -30,6 +32,7 @@ class ReadingHistoryModel {
       'mangaTitle': mangaTitle,
       'coverUrl': coverUrl,
       'chapterId': chapterId,
+      'chapterIndex': chapterIndex,
       'chapterNumber': chapterNumber,
       'chapterTitle': chapterTitle,
       'pageNumber': pageNumber,
@@ -45,6 +48,7 @@ class ReadingHistoryModel {
       mangaTitle: json['mangaTitle'] as String? ?? '',
       coverUrl: json['coverUrl'] as String? ?? '',
       chapterId: json['chapterId'] as String? ?? '',
+      chapterIndex: (json['chapterIndex'] as num?)?.toInt(),
       chapterNumber: json['chapterNumber']?.toString() ?? '',
       chapterTitle: json['chapterTitle'] as String?,
       pageNumber: (json['pageNumber'] as num?)?.toInt() ?? (json['lastPageRead'] as num?)?.toInt() ?? 1,

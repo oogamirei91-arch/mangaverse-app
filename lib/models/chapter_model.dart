@@ -29,6 +29,8 @@ class ChapterModel {
     this.serverType = 'suwayomi',
   });
 
+  int get chapterIndex => index ?? int.tryParse(id) ?? 1;
+
   String get displayName {
     if (title != null && title!.trim().isNotEmpty) {
       if (title!.toLowerCase().startsWith('chapter') || title!.toLowerCase().startsWith('ch.')) {
@@ -46,6 +48,10 @@ class ChapterModel {
     final scanlator = json['scanlator']?.toString();
     final pageCount = (json['pageCount'] as num?)?.toInt() ?? 0;
     final uploadDate = json['uploadDate'];
+    final rawIndex = json['index'];
+    final parsedIndex = (rawIndex is num)
+        ? rawIndex.toInt()
+        : int.tryParse(rawIndex?.toString() ?? '');
 
     return ChapterModel(
       id: chId,
@@ -56,7 +62,7 @@ class ChapterModel {
       publishAt: uploadDate != null ? uploadDate.toString() : null,
       scanlationGroup: scanlator,
       mangaId: mangaId ?? (json['mangaId']?.toString()),
-      index: (json['index'] as num?)?.toInt(),
+      index: parsedIndex,
       isRead: json['read'] == true,
       isBookmarked: json['bookmarked'] == true,
       serverType: 'suwayomi',

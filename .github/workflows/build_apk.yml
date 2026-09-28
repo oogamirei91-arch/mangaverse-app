@@ -24,7 +24,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Pasang Flutter SDK versi stabil terbaru
+      # 3. Pasang Keystore Konsisten (agar signature sertifikat APK selalu konsisten & tidak bentrok saat update)
+      - name: Setup Consistent Keystore
+        run: |
+          mkdir -p ~/.android
+          cp .github/keystores/debug.keystore ~/.android/debug.keystore
+
+      # 4. Pasang Flutter SDK versi stabil terbaru
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:

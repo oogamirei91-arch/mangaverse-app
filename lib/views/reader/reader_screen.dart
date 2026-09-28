@@ -40,6 +40,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       final mangaProvider = context.read<MangaProvider>();
       await reader.loadChapter(
         widget.chapter.id,
+        chapterIndex: widget.chapter.index,
         mangaId: widget.mangaId ?? widget.chapter.mangaId,
         serverType: widget.chapter.serverType,
         suwayomiUrl: mangaProvider.suwayomiUrl,
@@ -57,6 +58,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         mangaTitle: widget.mangaTitle,
         coverUrl: widget.mangaCoverUrl ?? '',
         chapterId: widget.chapter.id,
+        chapterIndex: widget.chapter.index,
         chapterNumber: widget.chapter.chapter,
         chapterTitle: widget.chapter.title,
         pageNumber: page,
@@ -145,6 +147,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                                 final mangaProvider = context.read<MangaProvider>();
                                 reader.loadChapter(
                                   widget.chapter.id,
+                                  chapterIndex: widget.chapter.index,
                                   mangaId: widget.mangaId,
                                   serverType: widget.chapter.serverType,
                                   suwayomiUrl: mangaProvider.suwayomiUrl,
