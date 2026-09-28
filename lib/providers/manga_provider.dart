@@ -28,6 +28,7 @@ class MangaProvider extends ChangeNotifier {
   String _advStatus = 'all'; // all, ongoing, completed
   String _advLanguage = 'id';
   List<String> _advSelectedGenreIds = [];
+  List<String> _advSelectedRatings = ['safe', 'suggestive', 'erotica', 'pornographic'];
 
   List<MangaModel> get popularManga => _popularManga;
   List<MangaModel> get latestManga => _latestManga;
@@ -46,6 +47,7 @@ class MangaProvider extends ChangeNotifier {
   String get advStatus => _advStatus;
   String get advLanguage => _advLanguage;
   List<String> get advSelectedGenreIds => _advSelectedGenreIds;
+  List<String> get advSelectedRatings => _advSelectedRatings;
 
   List<String> get currentContentRatings => _isSafeSearchEnabled
       ? ['safe', 'suggestive']
@@ -201,11 +203,23 @@ class MangaProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleAdvRating(String rating) {
+    if (_advSelectedRatings.contains(rating)) {
+      if (_advSelectedRatings.length > 1) {
+        _advSelectedRatings.remove(rating);
+      }
+    } else {
+      _advSelectedRatings.add(rating);
+    }
+    notifyListeners();
+  }
+
   void resetAdvFilters() {
     _advComicType = 'all';
     _advStatus = 'all';
     _advLanguage = 'id';
     _advSelectedGenreIds.clear();
+    _advSelectedRatings = ['safe', 'suggestive', 'erotica', 'pornographic'];
     _advancedSearchResults.clear();
     notifyListeners();
   }
@@ -217,6 +231,17 @@ class MangaProvider extends ChangeNotifier {
 
     try {
       final lang = _advLanguage == 'all' ? null : _advLanguage;
+      
+      // Tentukan contentRatings yang diizinkan
+      List<String> ratingsToUse;
+      if (_isSafeSearchEnabled) {
+        ratingsToUse = ['safe', 'suggestive'];
+      } else {
+        ratingsToUse = _advSelectedRatings.isNotEmpty
+            ? _advSelectedRatings
+            : ['safe', 'suggestive', 'erotica', 'pornographic'];
+      }
+
       _advancedSearchResults = await _service.searchManga(
         query,
         limit: 40,
@@ -224,7 +249,7 @@ class MangaProvider extends ChangeNotifier {
         comicType: _advComicType,
         status: _advStatus,
         includedTags: _advSelectedGenreIds.isNotEmpty ? _advSelectedGenreIds : null,
-        contentRatings: currentContentRatings,
+        contentRatings: ratingsToUse,
       );
     } catch (e) {
       _advancedSearchResults = [];

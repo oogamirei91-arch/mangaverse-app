@@ -16,7 +16,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _showFilters = true;
 
-  // Daftar genre populer beserta UUID resmi MangaDex
+  // Daftar genre lengkap beserta UUID resmi MangaDex
   static const Map<String, String> _popularGenres = {
     'Action': '391e0439-e38d-4e18-800e-6213080f3385',
     'Adventure': '87cc87cd-a395-47af-b27a-93258283bbc6',
@@ -32,6 +32,11 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
     'Slice of Life': 'e5301a23-ebd9-49dd-a0cb-2add944c7fe9',
     'Supernatural': 'eabc5b4c-6aff-42f3-b657-3e190adc484b',
     'Sports': '69964a64-2f90-4d33-beeb-f3ed2f2050c9',
+    'Ecchi': '97893a4c-12af-4dac-b6be-0dffb3720f22',
+    'Smut': 'fac73735-a1b4-4b47-a71d-f89aa7741d0b',
+    'Harem': 'aafb99c1-7f60-43fa-b75f-fc9502ce29c7',
+    'Gore': 'b29d6a3d-1569-4e7a-8ac5-983ac273e766',
+    'Doujinshi': 'b13b2a48-c720-44a9-9c77-39c9979373fb',
   };
 
   @override
@@ -217,27 +222,73 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
           ),
           const SizedBox(height: 14),
 
-          // D. Pilihan Genre (Multi-select)
+          // D. Filter Klasifikasi Konten (Content Rating)
+          if (!provider.isSafeSearchEnabled) ...[
+            _buildFilterLabel('Klasifikasi Konten (Safe Search Nonaktif):'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildRatingFilterChip(provider, 'safe', '🟢 Safe'),
+                _buildRatingFilterChip(provider, 'suggestive', '🟡 Suggestive'),
+                _buildRatingFilterChip(provider, 'erotica', '🟠 Erotica'),
+                _buildRatingFilterChip(provider, 'pornographic', '🔴 18+ Pornographic'),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF06D6A0).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF06D6A0).withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.shield_rounded, size: 16, color: Color(0xFF06D6A0)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Safe Search Aktif. Konten 18+ disaring. Ubah di Pengaturan jika ingin membuka.',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // E. Pilihan Genre (Multi-select termasuk Ecchi, Smut, Gore, Doujinshi)
           _buildFilterLabel('Pilih Genre (Bisa Lebih Dari Satu):'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: _popularGenres.entries.map((entry) {
               final isSelected = provider.advSelectedGenreIds.contains(entry.value);
+              final isMatureTag = ['Ecchi', 'Smut', 'Gore', 'Doujinshi', 'Harem'].contains(entry.key);
+
               return FilterChip(
                 label: Text(entry.key),
                 selected: isSelected,
                 onSelected: (_) => provider.toggleAdvGenre(entry.value),
-                selectedColor: AppTheme.primaryColor.withOpacity(0.3),
-                checkmarkColor: AppTheme.primaryColor,
+                selectedColor: isMatureTag
+                    ? Colors.redAccent.withOpacity(0.35)
+                    : AppTheme.primaryColor.withOpacity(0.3),
+                checkmarkColor: isMatureTag ? Colors.redAccent : AppTheme.primaryColor,
                 backgroundColor: AppTheme.cardColor,
                 labelStyle: GoogleFonts.plusJakartaSans(
-                  color: isSelected ? Colors.white : AppTheme.textSecondary,
+                  color: isSelected
+                      ? Colors.white
+                      : (isMatureTag ? Colors.redAccent.withOpacity(0.8) : AppTheme.textSecondary),
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
                 side: BorderSide(
-                  color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.06),
+                  color: isSelected
+                      ? (isMatureTag ? Colors.redAccent : AppTheme.primaryColor)
+                      : (isMatureTag ? Colors.redAccent.withOpacity(0.2) : Colors.white.withOpacity(0.06)),
                 ),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               );
@@ -292,6 +343,29 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
           color: AppTheme.textSecondary,
         ),
       ),
+    );
+  }
+
+  Widget _buildRatingFilterChip(MangaProvider provider, String rating, String label) {
+    final isSelected = provider.advSelectedRatings.contains(rating);
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => provider.toggleAdvRating(rating),
+      selectedColor: rating == 'pornographic' || rating == 'erotica'
+          ? Colors.redAccent.withOpacity(0.3)
+          : AppTheme.primaryColor.withOpacity(0.3),
+      checkmarkColor: rating == 'pornographic' || rating == 'erotica' ? Colors.redAccent : AppTheme.primaryColor,
+      backgroundColor: AppTheme.cardColor,
+      labelStyle: GoogleFonts.plusJakartaSans(
+        color: isSelected ? Colors.white : AppTheme.textSecondary,
+        fontSize: 11,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      side: BorderSide(
+        color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.06),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 
