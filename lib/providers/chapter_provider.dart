@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/chapter_model.dart';
 import '../services/mangadex_service.dart';
+import '../services/suwayomi_service.dart';
 
 class ChapterProvider extends ChangeNotifier {
   final MangaDexService _service = MangaDexService();
+  final SuwayomiService _suwayomiService = SuwayomiService();
 
   List<ChapterModel> _chapters = [];
   bool _isLoading = false;
@@ -18,12 +20,14 @@ class ChapterProvider extends ChangeNotifier {
   String get chapterLanguage => _chapterLanguage;
   String? get errorMessage => _errorMessage;
 
-  /// Memuat daftar chapter untuk komik tertentu disesuaikan dengan bahasa aktif
+  /// Memuat daftar chapter untuk komik tertentu disesuaikan dengan server & bahasa aktif
   Future<void> fetchChapters(
     String mangaId, {
     String? defaultLanguage,
     List<String>? contentRatings,
     bool autoFallback = true,
+    String? serverType,
+    String? suwayomiUrl,
   }) async {
     if (defaultLanguage != null && defaultLanguage.isNotEmpty) {
       _chapterLanguage = defaultLanguage;
@@ -37,24 +41,29 @@ class ChapterProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _chapters = await _service.getMangaChapters(
-        mangaId,
-        language: _chapterLanguage,
-        limit: 100,
-        contentRatings: _contentRatings,
-      );
-
-      // Jika chapter bahasa Indonesia kosong dan user memilih ID serta autoFallback aktif
-      if (_chapters.isEmpty && _chapterLanguage == 'id' && autoFallback) {
-        final enChapters = await _service.getMangaChapters(
+      if (serverType == 'suwayomi') {
+        final url = suwayomiUrl ?? 'http://10.0.2.2:4567';
+        _chapters = await _suwayomiService.getMangaChapters(url, mangaId);
+      } else {
+        _chapters = await _service.getMangaChapters(
           mangaId,
-          language: 'en',
+          language: _chapterLanguage,
           limit: 100,
           contentRatings: _contentRatings,
         );
-        if (enChapters.isNotEmpty) {
-          _chapters = enChapters;
-          _chapterLanguage = 'en';
+
+        // Jika chapter bahasa Indonesia kosong dan user memilih ID serta autoFallback aktif
+        if (_chapters.isEmpty && _chapterLanguage == 'id' && autoFallback) {
+          final enChapters = await _service.getMangaChapters(
+            mangaId,
+            language: 'en',
+            limit: 100,
+            contentRatings: _contentRatings,
+          );
+          if (enChapters.isNotEmpty) {
+            _chapters = enChapters;
+            _chapterLanguage = 'en';
+          }
         }
       }
     } catch (e) {
@@ -70,7 +79,13 @@ class ChapterProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void changeLanguage(String mangaId, String lang, {List<String>? contentRatings}) {
+  void changeLanguage(
+    String mangaId,
+    String lang, {
+    List<String>? contentRatings,
+    String? serverType,
+    String? suwayomiUrl,
+  }) {
     _chapterLanguage = lang;
     if (contentRatings != null) {
       _contentRatings = contentRatings;
@@ -80,6 +95,8 @@ class ChapterProvider extends ChangeNotifier {
       defaultLanguage: lang,
       contentRatings: _contentRatings,
       autoFallback: false,
+      serverType: serverType,
+      suwayomiUrl: suwayomiUrl,
     );
   }
 }

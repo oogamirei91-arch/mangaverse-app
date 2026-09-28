@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/chapter_model.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/manga_provider.dart';
 import '../../providers/reader_provider.dart';
 
 class ReaderScreen extends StatefulWidget {
@@ -36,7 +37,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _pageController = PageController();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final reader = context.read<ReaderProvider>();
-      await reader.loadChapter(widget.chapter.id);
+      final mangaProvider = context.read<MangaProvider>();
+      await reader.loadChapter(
+        widget.chapter.id,
+        mangaId: widget.mangaId ?? widget.chapter.mangaId,
+        serverType: widget.chapter.serverType,
+        suwayomiUrl: mangaProvider.suwayomiUrl,
+      );
 
       // Simpan progres awal saat chapter berhasil dimuat
       _saveProgress(1, reader.totalPages);

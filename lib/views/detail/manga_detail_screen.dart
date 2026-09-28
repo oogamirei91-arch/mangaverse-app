@@ -33,6 +33,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
         widget.manga.id,
         defaultLanguage: selectedLang,
         contentRatings: mangaProvider.currentContentRatings,
+        serverType: widget.manga.serverType,
+        suwayomiUrl: mangaProvider.suwayomiUrl,
       );
     });
   }
@@ -353,19 +355,21 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-
-                  // Language selector chips
-                  Row(
-                    children: [
-                      _buildChapterLangChip(context, chapterProvider, 'id', '🇮🇩 ID'),
-                      const SizedBox(width: 8),
-                      _buildChapterLangChip(context, chapterProvider, 'en', '🇬🇧 EN'),
-                      const SizedBox(width: 8),
-                      _buildChapterLangChip(context, chapterProvider, 'all', '🌐 Semua'),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+                  // Language selector chips (Hanya untuk server MangaDex)
+                  if (widget.manga.serverType != 'suwayomi') ...[
+                    Row(
+                      children: [
+                        _buildChapterLangChip(context, chapterProvider, 'id', '🇮🇩 ID'),
+                        const SizedBox(width: 8),
+                        _buildChapterLangChip(context, chapterProvider, 'en', '🇬🇧 EN'),
+                        const SizedBox(width: 8),
+                        _buildChapterLangChip(context, chapterProvider, 'all', '🌐 Semua'),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ] else ...[
+                    const SizedBox(height: 6),
+                  ],
 
                   // List Chapter Items
                   if (chapterProvider.isLoading)
@@ -589,10 +593,13 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) {
+        final mangaProvider = context.read<MangaProvider>();
         chapterProvider.changeLanguage(
           widget.manga.id,
           lang,
-          contentRatings: context.read<MangaProvider>().currentContentRatings,
+          contentRatings: mangaProvider.currentContentRatings,
+          serverType: widget.manga.serverType,
+          suwayomiUrl: mangaProvider.suwayomiUrl,
         );
       },
       selectedColor: AppTheme.primaryColor,

@@ -3,16 +3,21 @@ class ChapterPagesModel {
   final String hash;
   final List<String> data;
   final List<String> dataSaver;
+  final bool isDirectUrls;
 
   ChapterPagesModel({
     required this.baseUrl,
     required this.hash,
     required this.data,
     required this.dataSaver,
+    this.isDirectUrls = false,
   });
 
   /// Daftar URL gambar lengkap untuk dibaca di Reader
   List<String> getPageUrls({bool isDataSaver = false}) {
+    if (isDirectUrls) {
+      return data;
+    }
     final list = isDataSaver ? dataSaver : data;
     final qualityFolder = isDataSaver ? 'data-saver' : 'data';
     return list.map((fileName) => '$baseUrl/$qualityFolder/$hash/$fileName').toList();

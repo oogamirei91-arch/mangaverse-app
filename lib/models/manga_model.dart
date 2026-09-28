@@ -8,6 +8,10 @@ class MangaModel {
   final List<String> tags;
   final String? author;
 
+  final String? directCoverUrl;
+  final String serverType; // 'mangadex' | 'suwayomi'
+  final String? sourceId;
+
   MangaModel({
     required this.id,
     required this.title,
@@ -17,10 +21,16 @@ class MangaModel {
     this.coverFileName,
     this.tags = const [],
     this.author,
+    this.directCoverUrl,
+    this.serverType = 'mangadex',
+    this.sourceId,
   });
 
-  /// Generate URL Cover dari MangaDex
+  /// Generate URL Cover
   String get coverUrl {
+    if (directCoverUrl != null && directCoverUrl!.isNotEmpty) {
+      return directCoverUrl!;
+    }
     if (coverFileName == null || coverFileName!.isEmpty) {
       return 'https://via.placeholder.com/256x360.png?text=No+Cover';
     }
@@ -30,6 +40,9 @@ class MangaModel {
 
   /// Cover HQ untuk halaman detail
   String get coverUrlOriginal {
+    if (directCoverUrl != null && directCoverUrl!.isNotEmpty) {
+      return directCoverUrl!;
+    }
     if (coverFileName == null || coverFileName!.isEmpty) {
       return 'https://via.placeholder.com/512x720.png?text=No+Cover';
     }

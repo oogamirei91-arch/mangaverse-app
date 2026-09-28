@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/chapter_pages_model.dart';
 import '../services/mangadex_service.dart';
+import '../services/suwayomi_service.dart';
 
 enum ReaderMode {
   webtoon, // Vertical Continuous Scroll
@@ -10,6 +11,7 @@ enum ReaderMode {
 
 class ReaderProvider extends ChangeNotifier {
   final MangaDexService _service = MangaDexService();
+  final SuwayomiService _suwayomiService = SuwayomiService();
 
   ChapterPagesModel? _pagesData;
   List<String> _pageUrls = [];
@@ -33,15 +35,26 @@ class ReaderProvider extends ChangeNotifier {
   bool get isDataSaver => _isDataSaver;
   ReaderMode get readerMode => _readerMode;
 
-  /// Memuat halaman-halaman dari sebuah chapter
-  Future<void> loadChapter(String chapterId) async {
+  /// Memuat halaman-halaman dari sebuah chapter (MangaDex atau Suwayomi)
+  Future<void> loadChapter(
+    String chapterId, {
+    String? mangaId,
+    String? serverType,
+    String? suwayomiUrl,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     _currentPage = 1;
     notifyListeners();
 
     try {
-      _pagesData = await _service.getChapterPages(chapterId);
+      if (serverType == 'suwayomi' && mangaId != null) {
+        final url = suwayomiUrl ?? 'http://10.0.2.2:4567';
+        _pagesData = await _suwayomiService.getChapterPages(url, mangaId, chapterId);
+      } else {
+        _pagesData = await _service.getChapterPages(chapterId);
+      }
+
       if (_pagesData != null) {
         _pageUrls = _pagesData!.getPageUrls(isDataSaver: _isDataSaver);
         _totalPages = _pageUrls.length;

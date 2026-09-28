@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/manga_model.dart';
 import '../../providers/manga_provider.dart';
 import '../../services/mangadex_service.dart';
+import '../../services/suwayomi_service.dart';
 import '../../widgets/manga_card.dart';
 
 class PopularListScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class PopularListScreen extends StatefulWidget {
 
 class _PopularListScreenState extends State<PopularListScreen> {
   final MangaDexService _service = MangaDexService();
+  final SuwayomiService _suwayomiService = SuwayomiService();
   final ScrollController _scrollController = ScrollController();
 
   List<MangaModel> _mangaList = [];
@@ -63,14 +65,25 @@ class _PopularListScreenState extends State<PopularListScreen> {
 
     try {
       final mangaProvider = context.read<MangaProvider>();
-      final lang = widget.language == 'all' ? null : widget.language;
-      final newItems = await _service.getPopularManga(
-        limit: _limit,
-        offset: _offset,
-        language: lang,
-        comicType: widget.comicType,
-        contentRatings: mangaProvider.currentContentRatings,
-      );
+      List<MangaModel> newItems;
+
+      if (mangaProvider.isSuwayomiActive && mangaProvider.suwayomiSourceId != null) {
+        final page = (_offset ~/ _limit) + 1;
+        newItems = await _suwayomiService.getPopularManga(
+          mangaProvider.suwayomiUrl,
+          mangaProvider.suwayomiSourceId!,
+          page: page,
+        );
+      } else {
+        final lang = widget.language == 'all' ? null : widget.language;
+        newItems = await _service.getPopularManga(
+          limit: _limit,
+          offset: _offset,
+          language: lang,
+          comicType: widget.comicType,
+          contentRatings: mangaProvider.currentContentRatings,
+        );
+      }
 
       setState(() {
         if (newItems.length < _limit) {
@@ -86,6 +99,10 @@ class _PopularListScreenState extends State<PopularListScreen> {
   }
 
   String _getTitle() {
+    final mangaProvider = context.read<MangaProvider>();
+    if (mangaProvider.isSuwayomiActive) {
+      return '🔥 Populer (${mangaProvider.suwayomiSourceName ?? 'Suwayomi'})';
+    }
     switch (widget.comicType) {
       case 'manhwa':
         return '🔥 Manhwa Terpopuler';
@@ -113,13 +130,19 @@ class _PopularListScreenState extends State<PopularListScreen> {
             color: AppTheme.textPrimary,
           ),
         ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: RefreshIndicator(
+        onRefresh: () => _fetchPopularManga(refresh: true),
         color: AppTheme.primaryColor,
         backgroundColor: AppTheme.surfaceColor,
-        onRefresh: () => _fetchPopularManga(refresh: true),
         child: _mangaList.isEmpty && _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
+            ? const Center(
+                child: CircularProgressIndicator(color: AppTheme.primaryColor),
+              )
             : _mangaList.isEmpty
                 ? Center(
                     child: Text(
@@ -142,7 +165,10 @@ class _PopularListScreenState extends State<PopularListScreen> {
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(color: AppTheme.primaryColor),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppTheme.primaryColor,
+                            ),
                           ),
                         );
                       }

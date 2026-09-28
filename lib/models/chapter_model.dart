@@ -7,6 +7,8 @@ class ChapterModel {
   final int pagesCount;
   final String? publishAt;
   final String? scanlationGroup;
+  final String? mangaId;
+  final String serverType; // 'mangadex' | 'suwayomi'
 
   ChapterModel({
     required this.id,
@@ -17,6 +19,8 @@ class ChapterModel {
     required this.pagesCount,
     this.publishAt,
     this.scanlationGroup,
+    this.mangaId,
+    this.serverType = 'mangadex',
   });
 
   String get displayName {

@@ -163,11 +163,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              _getTypeDisplayName(mangaProvider.selectedComicType),
+                              mangaProvider.isSuwayomiActive
+                                  ? (mangaProvider.suwayomiSourceName ?? 'Suwayomi')
+                                  : _getTypeDisplayName(mangaProvider.selectedComicType),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: AppTheme.primaryColor,
+                                color: mangaProvider.isSuwayomiActive ? AppTheme.secondaryColor : AppTheme.primaryColor,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -273,6 +275,80 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Filter Gabungan: Dropdown Tipe (Manga/Manhwa/Manhua) & Pilihan Bahasa
   Widget _buildTypeAndLanguageFilters(BuildContext context, MangaProvider provider) {
+    if (provider.isSuwayomiActive) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.secondaryColor.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryColor.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.hub_rounded, color: AppTheme.secondaryColor, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Server Suwayomi Aktif',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.secondaryColor,
+                    ),
+                  ),
+                  Text(
+                    provider.suwayomiSourceName ?? 'Pilih Sumber di Pengaturan',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (provider.suwayomiSources.isNotEmpty)
+              DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: provider.suwayomiSourceId,
+                  dropdownColor: AppTheme.cardColor,
+                  icon: const Icon(Icons.swap_horiz_rounded, color: AppTheme.secondaryColor),
+                  items: provider.suwayomiSources.map((s) {
+                    return DropdownMenuItem(
+                      value: s.id,
+                      child: Text(
+                        s.displayName,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (newId) {
+                    if (newId != null) {
+                      final src = provider.suwayomiSources.firstWhere((s) => s.id == newId);
+                      provider.setSuwayomiSource(src.id, src.name);
+                    }
+                  },
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
