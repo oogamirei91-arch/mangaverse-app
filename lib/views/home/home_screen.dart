@@ -102,11 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               // 1. Search Bar
               _buildSearchBar(context),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              // 2. Language Filter Chips
-              _buildLanguageFilter(context, mangaProvider),
-              const SizedBox(height: 24),
+              // 2. Dropdown Tipe Komik & Filter Bahasa
+              _buildTypeAndLanguageFilters(context, mangaProvider),
+              const SizedBox(height: 20),
 
               // Jika sedang dalam mode pencarian
               if (_searchController.text.trim().isNotEmpty) ...[
@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 else if (mangaProvider.searchResults.isEmpty)
-                  _buildEmptyState('Tidak ada komik yang sesuai kata kunci.')
+                  _buildEmptyState('Tidak ada komik yang sesuai kata kunci dan filter terpilih.')
                 else
                   _buildMangaGrid(mangaProvider.searchResults),
               ] else ...[
@@ -144,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Text(
-                      'Lihat Semua',
+                      _getTypeDisplayName(mangaProvider.selectedComicType),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 else if (mangaProvider.popularManga.isEmpty)
-                  _buildEmptyState('Belum ada data komik populer.')
+                  _buildEmptyState('Belum ada data untuk kategori ini.')
                 else
                   SizedBox(
                     height: 220,
@@ -200,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 else if (mangaProvider.latestManga.isEmpty)
-                  _buildEmptyState('Belum ada update terbaru.')
+                  _buildEmptyState('Belum ada update terbaru untuk kategori ini.')
                 else
                   _buildMangaGrid(mangaProvider.latestManga),
               ],
@@ -242,40 +242,151 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildLanguageFilter(BuildContext context, MangaProvider provider) {
-    final filters = [
-      {'label': '🇮🇩 Indonesia', 'key': 'id'},
-      {'label': '🇬🇧 English', 'key': 'en'},
-      {'label': '🌐 Semua', 'key': 'all'},
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: filters.map((item) {
-          final isSelected = provider.selectedLanguage == item['key'];
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ChoiceChip(
-              label: Text(item['label']!),
-              selected: isSelected,
-              onSelected: (_) => provider.setLanguageFilter(item['key']!),
-              selectedColor: AppTheme.primaryColor,
-              backgroundColor: AppTheme.surfaceColor,
-              labelStyle: GoogleFonts.plusJakartaSans(
-                color: isSelected ? Colors.white : AppTheme.textSecondary,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                fontSize: 12,
+  /// Filter Gabungan: Dropdown Tipe (Manga/Manhwa/Manhua) & Pilihan Bahasa
+  Widget _buildTypeAndLanguageFilters(BuildContext context, MangaProvider provider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Dropdown Tipe Komik (Manga, Manhwa, Manhua)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: provider.selectedComicType,
+              isExpanded: true,
+              dropdownColor: AppTheme.cardColor,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primaryColor),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
               ),
-              side: BorderSide(
-                color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.06),
-              ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              items: const [
+                DropdownMenuItem(
+                  value: 'all',
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_stories_rounded, size: 18, color: AppTheme.secondaryColor),
+                      SizedBox(width: 10),
+                      Text('Semua Tipe Komik (Manga, Manhwa, Manhua)'),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'manhwa',
+                  child: Row(
+                    children: [
+                      Text('🇰🇷', style: TextStyle(fontSize: 18)),
+                      SizedBox(width: 10),
+                      Text('Manhwa (Korea - Full Color / Webtoon)'),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'manga',
+                  child: Row(
+                    children: [
+                      Text('🇯🇵', style: TextStyle(fontSize: 18)),
+                      SizedBox(width: 10),
+                      Text('Manga (Jepang)'),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'manhua',
+                  child: Row(
+                    children: [
+                      Text('🇨🇳', style: TextStyle(fontSize: 18)),
+                      SizedBox(width: 10),
+                      Text('Manhua (China)'),
+                    ],
+                  ),
+                ),
+              ],
+              onChanged: (newType) {
+                if (newType != null) {
+                  provider.setComicType(newType);
+                }
+              },
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Filter Bahasa (Indonesia, English, Semua)
+        Row(
+          children: [
+            Text(
+              'Bahasa Server: ',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildLanguageChip(context, provider, 'id', '🇮🇩 Indonesia'),
+                    const SizedBox(width: 6),
+                    _buildLanguageChip(context, provider, 'en', '🇬🇧 English'),
+                    const SizedBox(width: 6),
+                    _buildLanguageChip(context, provider, 'all', '🌐 Semua'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
+  }
+
+  Widget _buildLanguageChip(
+    BuildContext context,
+    MangaProvider provider,
+    String key,
+    String label,
+  ) {
+    final isSelected = provider.selectedLanguage == key;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => provider.setLanguageFilter(key),
+      selectedColor: AppTheme.primaryColor,
+      backgroundColor: AppTheme.surfaceColor,
+      labelStyle: GoogleFonts.plusJakartaSans(
+        color: isSelected ? Colors.white : AppTheme.textSecondary,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        fontSize: 11,
+      ),
+      side: BorderSide(
+        color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.06),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
+  }
+
+  String _getTypeDisplayName(String type) {
+    switch (type) {
+      case 'manhwa':
+        return '🇰🇷 Manhwa';
+      case 'manga':
+        return '🇯🇵 Manga';
+      case 'manhua':
+        return '🇨🇳 Manhua';
+      default:
+        return '🌐 Semua';
+    }
   }
 
   Widget _buildMangaGrid(List<dynamic> list) {
@@ -305,6 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             Text(
               message,
+              textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary, fontSize: 14),
             ),
           ],
@@ -324,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         content: Text(
-          'Anda dapat masuk kembali kapan saja menggunakan akun Google Anda.',
+          'Anda dapat masuk kembali kapan saja.',
           style: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary),
         ),
         actions: [

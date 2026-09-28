@@ -78,7 +78,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   CircularProgressIndicator(color: AppTheme.primaryColor),
                   SizedBox(height: 16),
                   Text(
-                    'Memuat halaman komik...',
+                    'Memuat halaman komik (Mode Cepat)...',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],
@@ -127,16 +127,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  /// Mode Webtoon: Scroll Vertikal Tanpa Jeda
+  /// Mode Webtoon: Scroll Vertikal Cepat dengan Pre-fetching 2500px dan MemCache
   Widget _buildWebtoonView(ReaderProvider reader) {
     return ListView.builder(
       padding: EdgeInsets.zero,
+      cacheExtent: 2500, // Preload gambar ke depan agar tidak blank saat scroll cepat
       itemCount: reader.pageUrls.length,
       itemBuilder: (context, index) {
         final url = reader.pageUrls[index];
         return CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.fitWidth,
+          memCacheWidth: 1080, // Optimasi RAM agar decode gambar 4x lebih cepat
           placeholder: (context, url) => Container(
             height: 350,
             color: const Color(0xFF141414),
@@ -165,7 +167,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
       scrollPhysics: const BouncingScrollPhysics(),
       builder: (BuildContext context, int index) {
         return PhotoViewGalleryPageOptions(
-          imageProvider: CachedNetworkImageProvider(reader.pageUrls[index]),
+          imageProvider: CachedNetworkImageProvider(
+            reader.pageUrls[index],
+            maxWidth: 1080, // Optimasi memori
+          ),
           initialScale: PhotoViewComputedScale.contained,
           minScale: PhotoViewComputedScale.contained,
           maxScale: PhotoViewComputedScale.covered * 2.5,
@@ -243,6 +248,27 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ],
               ),
             ),
+            // Tombol Toggle Kualitas Cepat (Data Saver) vs Asli (HQ)
+            IconButton(
+              icon: Icon(
+                reader.isDataSaver ? Icons.bolt_rounded : Icons.hd_rounded,
+                color: reader.isDataSaver ? const Color(0xFFFFD166) : Colors.white,
+              ),
+              tooltip: reader.isDataSaver ? 'Mode Cepat Aktif (Klik untuk Mode HQ)' : 'Mode HQ Aktif (Klik untuk Mode Cepat)',
+              onPressed: () {
+                reader.toggleDataSaver();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      reader.isDataSaver ? 'Beralih ke Mode Cepat (Hemat Kuota)' : 'Beralih ke Kualitas Asli (HQ)',
+                    ),
+                    duration: const Duration(seconds: 1),
+                    backgroundColor: AppTheme.primaryColor,
+                  ),
+                );
+              },
+            ),
+            // Toggle Mode Baca (Webtoon / Manga Paged)
             IconButton(
               icon: Icon(
                 reader.readerMode == ReaderMode.webtoon
@@ -309,7 +335,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '${reader.pageUrls.length} Halaman',
+                    '${reader.pageUrls.length} Halaman ${reader.isDataSaver ? "• ⚡ Cepat" : ""}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

@@ -13,6 +13,7 @@ class MangaProvider extends ChangeNotifier {
   bool _isLoadingLatest = false;
   bool _isSearching = false;
   String _selectedLanguage = 'id'; // Default Bahasa Indonesia
+  String _selectedComicType = 'all'; // all, manga, manhwa, manhua
   String? _errorMessage;
 
   List<MangaModel> get popularManga => _popularManga;
@@ -22,6 +23,7 @@ class MangaProvider extends ChangeNotifier {
   bool get isLoadingLatest => _isLoadingLatest;
   bool get isSearching => _isSearching;
   String get selectedLanguage => _selectedLanguage;
+  String get selectedComicType => _selectedComicType;
   String? get errorMessage => _errorMessage;
 
   /// Memuat data beranda awal
@@ -30,6 +32,15 @@ class MangaProvider extends ChangeNotifier {
       fetchPopular(),
       fetchLatest(),
     ]);
+  }
+
+  /// Ganti filter tipe komik (all, manga, manhwa, manhua)
+  void setComicType(String type) {
+    if (_selectedComicType != type) {
+      _selectedComicType = type;
+      notifyListeners();
+      fetchHomeData();
+    }
   }
 
   /// Ganti filter bahasa (id = Indonesia, en = Inggris, all = Semua)
@@ -48,7 +59,11 @@ class MangaProvider extends ChangeNotifier {
 
     try {
       final lang = _selectedLanguage == 'all' ? null : _selectedLanguage;
-      _popularManga = await _service.getPopularManga(limit: 10, language: lang);
+      _popularManga = await _service.getPopularManga(
+        limit: 10,
+        language: lang,
+        comicType: _selectedComicType,
+      );
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -64,7 +79,11 @@ class MangaProvider extends ChangeNotifier {
 
     try {
       final lang = _selectedLanguage == 'all' ? null : _selectedLanguage;
-      _latestManga = await _service.getLatestUpdates(limit: 20, language: lang);
+      _latestManga = await _service.getLatestUpdates(
+        limit: 20,
+        language: lang,
+        comicType: _selectedComicType,
+      );
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -86,7 +105,12 @@ class MangaProvider extends ChangeNotifier {
 
     try {
       final lang = _selectedLanguage == 'all' ? null : _selectedLanguage;
-      _searchResults = await _service.searchManga(query, limit: 30, language: lang);
+      _searchResults = await _service.searchManga(
+        query,
+        limit: 30,
+        language: lang,
+        comicType: _selectedComicType,
+      );
     } catch (e) {
       _searchResults = [];
     } finally {

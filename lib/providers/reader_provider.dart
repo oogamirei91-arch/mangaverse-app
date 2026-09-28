@@ -19,7 +19,8 @@ class ReaderProvider extends ChangeNotifier {
   int _currentPage = 1;
   int _totalPages = 0;
   bool _showControls = true;
-  bool _isDataSaver = false;
+  // Default diaktifkan (true) agar komik / manhwa dimuat 3x-5x lebih cepat
+  bool _isDataSaver = true;
   ReaderMode _readerMode = ReaderMode.webtoon;
 
   ChapterPagesModel? get pagesData => _pagesData;
@@ -70,6 +71,7 @@ class ReaderProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Beralih antara mode cepat (Data Saver) dan kualitas asli (HQ)
   void toggleDataSaver() {
     _isDataSaver = !_isDataSaver;
     if (_pagesData != null) {

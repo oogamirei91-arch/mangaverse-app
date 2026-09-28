@@ -11,23 +11,43 @@ class MangaDexService {
 
   MangaDexService({http.Client? client}) : _client = client ?? http.Client();
 
-  /// Mengambil daftar Manga Terpopuler
+  /// Helper untuk menambahkan filter tipe komik (Manga, Manhwa, Manhua)
+  void _applyComicTypeFilter(Map<String, dynamic> queryParams, String? comicType) {
+    if (comicType == null || comicType == 'all') return;
+
+    switch (comicType.toLowerCase()) {
+      case 'manga':
+        queryParams['originalLanguage[]'] = 'ja'; // Jepang
+        break;
+      case 'manhwa':
+        queryParams['originalLanguage[]'] = 'ko'; // Korea
+        break;
+      case 'manhua':
+        queryParams['originalLanguage[]'] = ['zh', 'zh-hk']; // China
+        break;
+    }
+  }
+
+  /// Mengambil daftar Komik Terpopuler (dioptimalkan dengan filter tipe & bahasa)
   Future<List<MangaModel>> getPopularManga({
     int limit = 20,
     int offset = 0,
     String? language = 'id',
+    String? comicType = 'all',
   }) async {
     final Map<String, dynamic> queryParams = {
       'limit': limit.toString(),
       'offset': offset.toString(),
       'order[followedCount]': 'desc',
-      'includes[]': ['cover_art', 'author', 'artist'],
+      'includes[]': ['cover_art', 'author'],
       'contentRating[]': ['safe', 'suggestive'],
     };
 
-    if (language != null && language.isNotEmpty) {
+    if (language != null && language.isNotEmpty && language != 'all') {
       queryParams['availableTranslatedLanguage[]'] = language;
     }
+
+    _applyComicTypeFilter(queryParams, comicType);
 
     final uri = Uri.parse('$baseUrl/manga').replace(queryParameters: queryParams);
     final response = await _client.get(uri);
@@ -37,15 +57,16 @@ class MangaDexService {
       final List data = json['data'] ?? [];
       return data.map((item) => MangaModel.fromJson(item)).toList();
     } else {
-      throw Exception('Gagal memuat manga populer (${response.statusCode})');
+      throw Exception('Gagal memuat komik populer (${response.statusCode})');
     }
   }
 
-  /// Mengambil daftar Manga yang Baru Diupdate
+  /// Mengambil daftar Komik yang Baru Diupdate
   Future<List<MangaModel>> getLatestUpdates({
     int limit = 20,
     int offset = 0,
     String? language = 'id',
+    String? comicType = 'all',
   }) async {
     final Map<String, dynamic> queryParams = {
       'limit': limit.toString(),
@@ -55,9 +76,11 @@ class MangaDexService {
       'contentRating[]': ['safe', 'suggestive'],
     };
 
-    if (language != null && language.isNotEmpty) {
+    if (language != null && language.isNotEmpty && language != 'all') {
       queryParams['availableTranslatedLanguage[]'] = language;
     }
+
+    _applyComicTypeFilter(queryParams, comicType);
 
     final uri = Uri.parse('$baseUrl/manga').replace(queryParameters: queryParams);
     final response = await _client.get(uri);
@@ -71,12 +94,13 @@ class MangaDexService {
     }
   }
 
-  /// Mencari Manga berdasarkan Keyword/Judul
+  /// Mencari Komik berdasarkan Keyword, Tipe & Bahasa
   Future<List<MangaModel>> searchManga(
     String query, {
-    int limit = 20,
+    int limit = 25,
     int offset = 0,
     String? language,
+    String? comicType = 'all',
   }) async {
     if (query.trim().isEmpty) return [];
 
@@ -89,9 +113,11 @@ class MangaDexService {
       'contentRating[]': ['safe', 'suggestive'],
     };
 
-    if (language != null && language.isNotEmpty) {
+    if (language != null && language.isNotEmpty && language != 'all') {
       queryParams['availableTranslatedLanguage[]'] = language;
     }
+
+    _applyComicTypeFilter(queryParams, comicType);
 
     final uri = Uri.parse('$baseUrl/manga').replace(queryParameters: queryParams);
     final response = await _client.get(uri);
@@ -118,7 +144,7 @@ class MangaDexService {
     }
   }
 
-  /// Mengambil Daftar Chapter dari sebuah Manga
+  /// Mengambil Daftar Chapter (Hanya bahasa terpilih agar hemat bandwidth & cepat)
   Future<List<ChapterModel>> getMangaChapters(
     String mangaId, {
     String language = 'id',
@@ -128,8 +154,8 @@ class MangaDexService {
     final Map<String, dynamic> queryParams = {
       'limit': limit.toString(),
       'offset': offset.toString(),
-      'order[chapter]': 'asc', // Urutkan dari chapter 1 ke atas
-      'includes[]': ['scanlation_group', 'user'],
+      'order[chapter]': 'asc',
+      'includes[]': ['scanlation_group'],
       'contentRating[]': ['safe', 'suggestive'],
     };
 

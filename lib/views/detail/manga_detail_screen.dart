@@ -8,6 +8,7 @@ import '../../models/chapter_model.dart';
 import '../../models/manga_model.dart';
 import '../../providers/chapter_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/manga_provider.dart';
 import '../reader/reader_screen.dart';
 
 class MangaDetailScreen extends StatefulWidget {
@@ -26,7 +27,11 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChapterProvider>().fetchChapters(widget.manga.id);
+      final selectedLang = context.read<MangaProvider>().selectedLanguage;
+      context.read<ChapterProvider>().fetchChapters(
+        widget.manga.id,
+        defaultLanguage: selectedLang,
+      );
     });
   }
 

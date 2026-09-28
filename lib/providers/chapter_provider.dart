@@ -17,8 +17,12 @@ class ChapterProvider extends ChangeNotifier {
   String get chapterLanguage => _chapterLanguage;
   String? get errorMessage => _errorMessage;
 
-  /// Memuat daftar chapter untuk komik tertentu
-  Future<void> fetchChapters(String mangaId) async {
+  /// Memuat daftar chapter untuk komik tertentu disesuaikan dengan bahasa aktif
+  Future<void> fetchChapters(String mangaId, {String? defaultLanguage}) async {
+    if (defaultLanguage != null && defaultLanguage.isNotEmpty) {
+      _chapterLanguage = defaultLanguage;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -30,7 +34,7 @@ class ChapterProvider extends ChangeNotifier {
         limit: 100,
       );
 
-      // Jika chapter bahasa Indonesia kosong, coba fallback ke bahasa Inggris
+      // Jika chapter bahasa Indonesia kosong dan user memilih ID, coba fallback ke bahasa Inggris
       if (_chapters.isEmpty && _chapterLanguage == 'id') {
         _chapters = await _service.getMangaChapters(
           mangaId,
