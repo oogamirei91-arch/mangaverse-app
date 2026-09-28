@@ -530,20 +530,6 @@ class MangaProvider extends ChangeNotifier {
 
     try {
       if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
-        // Tentukan kata kunci pencarian yang dikirim ke sumber:
-        // 1. Jika query diisi user -> gunakan query
-        // 2. Jika query kosong tapi ada genre terpilih -> gunakan genre sebagai query
-        // 3. Jika query kosong tapi tipe komik (manhwa/manhua) dipilih -> gunakan tipe komik
-        // 4. Jika semua kosong -> ambil komik populer
-        String targetQuery = query.trim();
-        if (targetQuery.isEmpty) {
-          if (_advSelectedGenreIds.isNotEmpty) {
-            targetQuery = _advSelectedGenreIds.first;
-          } else if (_advComicType != 'all') {
-            targetQuery = _advComicType;
-          }
-        }
-
         List<MangaModel> rawResults = [];
         String targetQuery = query.trim();
 
