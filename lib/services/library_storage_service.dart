@@ -15,16 +15,19 @@ class LibraryStorageService {
 
     try {
       final List decoded = jsonDecode(jsonString);
-      return decoded.map((item) {
+      return decoded.map<MangaModel>((item) {
+        final cover = item['directCoverUrl'] ?? item['coverUrl'] ?? item['coverFileName'];
         return MangaModel(
-          id: item['id'],
-          title: item['title'],
+          id: item['id'] ?? '',
+          title: item['title'] ?? '',
           description: item['description'],
           status: item['status'] ?? 'unknown',
           year: item['year'],
-          coverFileName: item['coverFileName'],
+          directCoverUrl: cover,
+          coverFileName: cover,
           tags: (item['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
           author: item['author'],
+          sourceId: item['sourceId'],
         );
       }).toList();
     } catch (_) {
@@ -50,38 +53,18 @@ class LibraryStorageService {
       'description': b.description,
       'status': b.status,
       'year': b.year,
-      'coverFileName': b.coverFileName,
+      'directCoverUrl': b.coverUrl,
+      'coverFileName': b.coverUrl,
       'tags': b.tags,
       'author': b.author,
+      'sourceId': b.sourceId,
     }).toList();
 
     await prefs.setString(_bookmarksKey, jsonEncode(rawList));
-    return !exists; // Mengembalikan status baru (true jika sekarang aktif)
+    return !exists;
   }
 
-  /// Cek apakah komik tertentu ada di bookmark
-  Future<bool> isBookmarked(String mangaId) async {
-    final bookmarks = await getBookmarks();
-    return bookmarks.any((b) => b.id == mangaId);
-  }
-
-  /// Menyimpan progres bacaan komik ke riwayat
-  Future<void> saveHistory(ReadingHistoryModel history) async {
-    final prefs = await SharedPreferences.getInstance();
-    final currentList = await getHistory();
-
-    // Hapus entri lama untuk manga yang sama agar tidak duplikat
-    currentList.removeWhere((item) => item.mangaId == history.mangaId);
-    // Masukkan riwayat terbaru ke paling atas
-    currentList.insert(0, history);
-
-    // Batasi riwayat maksimal 50 komik terakhir
-    final trimmedList = currentList.take(50).toList();
-    final jsonList = trimmedList.map((e) => e.toJson()).toList();
-    await prefs.setString(_historyKey, jsonEncode(jsonList));
-  }
-
-  /// Mengambil seluruh riwayat bacaan
+  /// Mengambil semua histori bacaan
   Future<List<ReadingHistoryModel>> getHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString(_historyKey);
@@ -89,22 +72,62 @@ class LibraryStorageService {
 
     try {
       final List decoded = jsonDecode(jsonString);
-      return decoded.map((e) => ReadingHistoryModel.fromJson(e)).toList();
+      return decoded
+          .map<ReadingHistoryModel>((item) => ReadingHistoryModel.fromJson(item))
+          .toList();
     } catch (_) {
       return [];
     }
   }
 
-  /// Hapus satu item dari riwayat
-  Future<void> removeHistoryItem(String mangaId) async {
+  /// Memperbarui progres bacaan (Upsert ke daftar histori)
+  Future<void> saveReadingProgress({
+    required String mangaId,
+    required String mangaTitle,
+    required String coverUrl,
+    required String chapterId,
+    required String chapterNumber,
+    required int lastPageRead,
+    required int totalPages,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final currentList = await getHistory();
-    currentList.removeWhere((item) => item.mangaId == mangaId);
-    final jsonList = currentList.map((e) => e.toJson()).toList();
-    await prefs.setString(_historyKey, jsonEncode(jsonList));
+    final historyList = await getHistory();
+
+    historyList.removeWhere((h) => h.mangaId == mangaId);
+
+    final newHistory = ReadingHistoryModel(
+      mangaId: mangaId,
+      mangaTitle: mangaTitle,
+      coverUrl: coverUrl,
+      chapterId: chapterId,
+      chapterNumber: chapterNumber,
+      lastPageRead: lastPageRead,
+      totalPages: totalPages,
+      lastReadAt: DateTime.now(),
+    );
+
+    historyList.insert(0, newHistory);
+
+    // Batasi histori hingga 100 komik terakhir
+    if (historyList.length > 100) {
+      historyList.removeRange(100, historyList.length);
+    }
+
+    final rawList = historyList.map((h) => h.toJson()).toList();
+    await prefs.setString(_historyKey, jsonEncode(rawList));
   }
 
-  /// Bersihkan seluruh riwayat baca
+  /// Menghapus histori bacaan untuk komik tertentu
+  Future<void> removeHistory(String mangaId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyList = await getHistory();
+    historyList.removeWhere((h) => h.mangaId == mangaId);
+
+    final rawList = historyList.map((h) => h.toJson()).toList();
+    await prefs.setString(_historyKey, jsonEncode(rawList));
+  }
+
+  /// Menghapus semua riwayat bacaan
   Future<void> clearAllHistory() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_historyKey);

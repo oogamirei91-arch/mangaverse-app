@@ -523,8 +523,6 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
         chapterProvider.changeLanguage(
           widget.manga.id,
           lang,
-          contentRatings: mangaProvider.currentContentRatings,
-          serverType: widget.manga.serverType,
           suwayomiUrl: mangaProvider.suwayomiUrl,
         );
       },

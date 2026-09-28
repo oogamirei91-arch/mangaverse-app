@@ -11,6 +11,7 @@ class ChapterModel {
   final int? index;
   final bool isRead;
   final bool isBookmarked;
+  final String serverType;
 
   ChapterModel({
     required this.id,
@@ -25,6 +26,7 @@ class ChapterModel {
     this.index,
     this.isRead = false,
     this.isBookmarked = false,
+    this.serverType = 'suwayomi',
   });
 
   String get displayName {
@@ -57,6 +59,7 @@ class ChapterModel {
       index: (json['index'] as num?)?.toInt(),
       isRead: json['read'] == true,
       isBookmarked: json['bookmarked'] == true,
+      serverType: 'suwayomi',
     );
   }
 

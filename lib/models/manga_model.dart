@@ -8,6 +8,7 @@ class MangaModel {
   final String? author;
   final String? directCoverUrl;
   final String? sourceId;
+  final String? coverFileName;
 
   MangaModel({
     required this.id,
@@ -19,12 +20,18 @@ class MangaModel {
     this.author,
     this.directCoverUrl,
     this.sourceId,
+    this.coverFileName,
   });
+
+  String get serverType => 'suwayomi';
 
   /// URL Cover thumbnail untuk card dan list
   String get coverUrl {
     if (directCoverUrl != null && directCoverUrl!.isNotEmpty) {
       return directCoverUrl!;
+    }
+    if (coverFileName != null && coverFileName!.isNotEmpty) {
+      return coverFileName!;
     }
     return 'https://via.placeholder.com/256x360.png?text=No+Cover';
   }
@@ -67,6 +74,7 @@ class MangaModel {
       tags: tags,
       author: author,
       directCoverUrl: fullCover,
+      coverFileName: fullCover,
       sourceId: sourceId,
     );
   }

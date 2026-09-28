@@ -158,7 +158,12 @@ class MangaProvider extends ChangeNotifier {
 
   /// Toggle Safe Search (Filter 18+)
   Future<void> toggleSafeSearch() async {
-    _isSafeSearchEnabled = !_isSafeSearchEnabled;
+    await setSafeSearch(!_isSafeSearchEnabled);
+  }
+
+  /// Mengatur Safe Search secara eksplisit
+  Future<void> setSafeSearch(bool enabled) async {
+    _isSafeSearchEnabled = enabled;
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
