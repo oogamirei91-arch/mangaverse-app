@@ -438,6 +438,15 @@ class MangaProvider extends ChangeNotifier {
           }
         }
 
+        // Prioritaskan hasil yang judulnya memuat kata kunci pencarian di urutan teratas
+        results.sort((a, b) {
+          final aMatch = a.title.toLowerCase().contains(cleanQ.toLowerCase());
+          final bMatch = b.title.toLowerCase().contains(cleanQ.toLowerCase());
+          if (aMatch && !bMatch) return -1;
+          if (!aMatch && bMatch) return 1;
+          return 0;
+        });
+
         _searchResults = results;
       } else {
         _searchResults = [];
@@ -535,42 +544,71 @@ class MangaProvider extends ChangeNotifier {
           }
         }
 
-        List<MangaModel> rawResults;
-        if (targetQuery.isEmpty) {
-          rawResults = await _suwayomiService.getPopularManga(
-            _suwayomiUrl,
-            _suwayomiSourceId!,
-            page: 1,
-          );
-        } else {
+        List<MangaModel> rawResults = [];
+        String targetQuery = query.trim();
+
+        if (targetQuery.isNotEmpty) {
+          // 1. Jika ada kata kunci judul yang diketik user
           rawResults = await _suwayomiService.searchManga(
             _suwayomiUrl,
             _suwayomiSourceId!,
             targetQuery,
             page: 1,
           );
-          // Fallback jika sumber aktif 0 hasil: coba cari di sumber rekomendasi lainnya dalam bahasa yang sama
-          if (rawResults.isEmpty) {
-            final currentSrc = _suwayomiSources.firstWhere(
-              (s) => s.id == _suwayomiSourceId,
-              orElse: () => SuwayomiSourceModel(id: '', name: '', lang: 'id'),
-            );
-            final alternates = suwayomiSources.where(
-              (s) => s.id != _suwayomiSourceId && s.lang.toLowerCase() == currentSrc.lang.toLowerCase() && s.isFeatured,
-            );
-            for (final alt in alternates) {
-              try {
-                final altRes = await _suwayomiService.searchManga(_suwayomiUrl, alt.id, targetQuery, page: 1);
-                if (altRes.isNotEmpty) {
-                  rawResults = altRes;
-                  break;
-                }
-              } catch (_) {}
+        } else if (_advSelectedGenreIds.isNotEmpty) {
+          // 2. Jika judul kosong tapi user memilih genre:
+          // Ambil hasil pencarian untuk genre-genre terpilih (maks 3 genre secara paralel) dan gabungkan hasilnya
+          final genresToSearch = _advSelectedGenreIds.take(3).toList();
+          final searchTasks = genresToSearch.map(
+            (g) => _suwayomiService.searchManga(_suwayomiUrl, _suwayomiSourceId!, g, page: 1),
+          );
+          final multiResults = await Future.wait(searchTasks);
+          final seenIds = <String>{};
+          for (final list in multiResults) {
+            for (final m in list) {
+              if (seenIds.add(m.id)) {
+                rawResults.add(m);
+              }
             }
+          }
+        } else if (_advComicType != 'all') {
+          // 3. Jika hanya tipe komik (manhwa/manhua/manga) yang dipilih
+          rawResults = await _suwayomiService.searchManga(
+            _suwayomiUrl,
+            _suwayomiSourceId!,
+            _advComicType,
+            page: 1,
+          );
+        } else {
+          // 4. Default: ambil komik populer dari sumber
+          rawResults = await _suwayomiService.getPopularManga(
+            _suwayomiUrl,
+            _suwayomiSourceId!,
+            page: 1,
+          );
+        }
+
+        // Fallback jika sumber aktif 0 hasil: coba cari di sumber rekomendasi lainnya dalam bahasa yang sama
+        if (rawResults.isEmpty && targetQuery.isNotEmpty) {
+          final currentSrc = _suwayomiSources.firstWhere(
+            (s) => s.id == _suwayomiSourceId,
+            orElse: () => SuwayomiSourceModel(id: '', name: '', lang: 'id'),
+          );
+          final alternates = suwayomiSources.where(
+            (s) => s.id != _suwayomiSourceId && s.lang.toLowerCase() == currentSrc.lang.toLowerCase() && s.isFeatured,
+          );
+          for (final alt in alternates) {
+            try {
+              final altRes = await _suwayomiService.searchManga(_suwayomiUrl, alt.id, targetQuery, page: 1);
+              if (altRes.isNotEmpty) {
+                rawResults = altRes;
+                break;
+              }
+            } catch (_) {}
           }
         }
 
-        // Terapkan filter client-side secara cerdas dan toleran
+        // Terapkan filter client-side secara cerdas, toleran, dan mendukung multi-genre
         _advancedSearchResults = rawResults.where((manga) {
           // 0. Filter Safe Search (18+ / NSFW)
           if (_isSafeSearchEnabled && _isNsfwManga(manga)) {
@@ -580,7 +618,6 @@ class MangaProvider extends ChangeNotifier {
           // 1. Filter Status Komik (ongoing / completed)
           if (_advStatus != 'all') {
             final st = manga.status.toLowerCase();
-            // Hanya filter jika status sudah diketahui ('unknown' tidak dibuang)
             if (st != 'unknown' && st.isNotEmpty && st != '0') {
               if (_advStatus == 'ongoing' && !st.contains('ongoing') && !st.contains('publishing') && !st.contains('1')) {
                 return false;
@@ -604,44 +641,58 @@ class MangaProvider extends ChangeNotifier {
                   descLower.contains(typeLower);
               if (!matches) return false;
             } else {
-              // Jika tags belum diinisialisasi (ringkasan Tachiyomi),
-              // cek apakah judul mengandung kata kunci tipe jika user mencari kata spesifik
               if (titleLower.contains('manga') || titleLower.contains('manhwa') || titleLower.contains('manhua')) {
                 if (!titleLower.contains(typeLower)) return false;
               }
             }
           }
 
-          // 3. Filter Genre Terpilih
+          // 3. Filter Genre Terpilih (Mendukung pemilihan lebih dari 1 genre dengan toleran / OR match)
           if (_advSelectedGenreIds.isNotEmpty) {
             final tagsLower = manga.tags.map((t) => t.toLowerCase()).toList();
             final descLower = (manga.description ?? '').toLowerCase();
+            final titleLower = manga.title.toLowerCase();
 
-            // Jika tags terisi dari Suwayomi, cek apakah memuat genre
-            if (tagsLower.isNotEmpty) {
-              for (final genre in _advSelectedGenreIds) {
+            if (tagsLower.isNotEmpty || descLower.isNotEmpty) {
+              // Cocokkan jika manga memuat SETIDAKNYA SATU dari genre yang dipilih
+              final matchesAny = _advSelectedGenreIds.any((genre) {
                 final gLower = genre.toLowerCase();
-                final hasTag = tagsLower.any((t) => t.contains(gLower));
-                final hasDesc = descLower.contains(gLower);
-                if (!hasTag && !hasDesc) {
-                  return false;
-                }
-              }
-            } else if (descLower.isNotEmpty) {
-              // Cek deskripsi jika tags kosong
-              for (final genre in _advSelectedGenreIds) {
-                if (!descLower.contains(genre.toLowerCase())) {
-                  return false;
-                }
-              }
-            } else {
-              // Jika tags & deskripsi kosong dari ringkasan list Tachiyomi,
-              // jangan eliminasi karena sudah dicari via query genre ke sumber
+                return tagsLower.any((t) => t.contains(gLower)) ||
+                    descLower.contains(gLower) ||
+                    titleLower.contains(gLower);
+              });
+              if (!matchesAny) return false;
             }
           }
 
           return true;
         }).toList();
+
+        // 4. Urutkan hasil pencarian secara cerdas:
+        // - Jika ada kata kunci judul: judul yang cocok ditaruh paling atas
+        // - Jika memilih multi-genre: komik dengan kecocokan genre terbanyak ditaruh paling atas
+        _advancedSearchResults.sort((a, b) {
+          if (targetQuery.isNotEmpty) {
+            final aMatch = a.title.toLowerCase().contains(targetQuery.toLowerCase());
+            final bMatch = b.title.toLowerCase().contains(targetQuery.toLowerCase());
+            if (aMatch && !bMatch) return -1;
+            if (!aMatch && bMatch) return 1;
+          }
+          if (_advSelectedGenreIds.isNotEmpty) {
+            final scoreA = _advSelectedGenreIds.where((g) {
+              final gl = g.toLowerCase();
+              return a.tags.any((t) => t.toLowerCase().contains(gl)) ||
+                  (a.description ?? '').toLowerCase().contains(gl);
+            }).length;
+            final scoreB = _advSelectedGenreIds.where((g) {
+              final gl = g.toLowerCase();
+              return b.tags.any((t) => t.toLowerCase().contains(gl)) ||
+                  (b.description ?? '').toLowerCase().contains(gl);
+            }).length;
+            if (scoreA != scoreB) return scoreB.compareTo(scoreA);
+          }
+          return 0;
+        });
       } else {
         _advancedSearchResults = [];
       }

@@ -296,6 +296,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                                     mangaTitle: widget.manga.title,
                                     mangaId: widget.manga.id,
                                     mangaCoverUrl: widget.manga.coverUrl,
+                                    chapters: chapterProvider.chapters,
                                   ),
                                 ),
                               );
@@ -676,6 +677,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                                     mangaTitle: widget.manga.title,
                                     mangaId: widget.manga.id,
                                     mangaCoverUrl: widget.manga.coverUrl,
+                                    chapters: chapterProvider.chapters,
                                   ),
                                 ),
                               );

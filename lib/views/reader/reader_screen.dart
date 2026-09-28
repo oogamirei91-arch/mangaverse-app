@@ -10,6 +10,7 @@ import '../../models/manga_model.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/manga_provider.dart';
 import '../../providers/reader_provider.dart';
+import '../../services/suwayomi_service.dart';
 import '../video/cosplay_video_player_screen.dart';
 
 class ReaderScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class ReaderScreen extends StatefulWidget {
   final String mangaTitle;
   final String? mangaId;
   final String? mangaCoverUrl;
+  final List<ChapterModel>? chapters;
 
   const ReaderScreen({
     super.key,
@@ -24,6 +26,7 @@ class ReaderScreen extends StatefulWidget {
     required this.mangaTitle,
     this.mangaId,
     this.mangaCoverUrl,
+    this.chapters,
   });
 
   @override
@@ -32,25 +35,140 @@ class ReaderScreen extends StatefulWidget {
 
 class _ReaderScreenState extends State<ReaderScreen> {
   late PageController _pageController;
+  late ScrollController _scrollController;
+  late ChapterModel _currentChapter;
+  List<ChapterModel> _allChapters = [];
+  bool _isLoadingNextChapter = false;
 
   @override
   void initState() {
     super.initState();
+    _currentChapter = widget.chapter;
     _pageController = PageController();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final reader = context.read<ReaderProvider>();
-      final mangaProvider = context.read<MangaProvider>();
-      await reader.loadChapter(
-        widget.chapter.id,
-        chapterIndex: widget.chapter.index,
-        mangaId: widget.mangaId ?? widget.chapter.mangaId,
-        serverType: widget.chapter.serverType,
-        suwayomiUrl: mangaProvider.suwayomiUrl,
-      );
+    _scrollController = ScrollController();
 
-      // Simpan progres awal saat chapter berhasil dimuat
-      _saveProgress(1, reader.totalPages);
+    if (widget.chapters != null && widget.chapters!.isNotEmpty) {
+      _allChapters = List.from(widget.chapters!);
+    }
+
+    _scrollController.addListener(_onScroll);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final mangaProvider = context.read<MangaProvider>();
+      if (_allChapters.isEmpty && widget.mangaId != null) {
+        _fetchChapterList(mangaProvider.suwayomiUrl);
+      }
+      await _loadCurrentChapterPages();
     });
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    // Deteksi jika user scroll ke bagian paling bawah (ambang batas 24px)
+    if (currentScroll >= maxScroll - 24 && maxScroll > 100) {
+      if (_nextChapter != null && !_isLoadingNextChapter) {
+        _loadNextChapter();
+      }
+    }
+  }
+
+  Future<void> _fetchChapterList(String suwayomiUrl) async {
+    try {
+      final chs = await SuwayomiService().getMangaChapters(suwayomiUrl, widget.mangaId!);
+      if (mounted) {
+        setState(() {
+          _allChapters = chs;
+        });
+      }
+    } catch (_) {}
+  }
+
+  List<ChapterModel> get _sortedChaptersAsc {
+    final list = List<ChapterModel>.from(_allChapters);
+    list.sort((a, b) {
+      final numA = double.tryParse(a.chapter) ?? (a.index?.toDouble() ?? 0.0);
+      final numB = double.tryParse(b.chapter) ?? (b.index?.toDouble() ?? 0.0);
+      if (numA != numB) return numA.compareTo(numB);
+      return (a.index ?? 0).compareTo(b.index ?? 0);
+    });
+    return list;
+  }
+
+  ChapterModel? get _nextChapter {
+    final sorted = _sortedChaptersAsc;
+    if (sorted.isEmpty) return null;
+
+    final idx = sorted.indexWhere((c) => c.id == _currentChapter.id);
+    if (idx != -1 && idx + 1 < sorted.length) {
+      return sorted[idx + 1];
+    }
+
+    final curNum = double.tryParse(_currentChapter.chapter);
+    if (curNum != null) {
+      for (final ch in sorted) {
+        final chNum = double.tryParse(ch.chapter);
+        if (chNum != null && chNum > curNum) {
+          return ch;
+        }
+      }
+    }
+    return null;
+  }
+
+  bool get _isLastChapter {
+    if (_allChapters.isEmpty) return false;
+    return _nextChapter == null;
+  }
+
+  Future<void> _loadCurrentChapterPages() async {
+    final reader = context.read<ReaderProvider>();
+    final mangaProvider = context.read<MangaProvider>();
+
+    await reader.loadChapter(
+      _currentChapter.id,
+      chapterIndex: _currentChapter.index,
+      mangaId: widget.mangaId ?? _currentChapter.mangaId,
+      serverType: _currentChapter.serverType,
+      suwayomiUrl: mangaProvider.suwayomiUrl,
+    );
+
+    _saveProgress(1, reader.totalPages);
+  }
+
+  Future<void> _loadNextChapter() async {
+    final next = _nextChapter;
+    if (next == null || _isLoadingNextChapter) return;
+
+    setState(() {
+      _isLoadingNextChapter = true;
+      _currentChapter = next;
+    });
+
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
+
+    await _loadCurrentChapterPages();
+
+    if (mounted) {
+      setState(() {
+        _isLoadingNextChapter = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Membuka ${next.displayName}...'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: AppTheme.primaryColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _saveProgress(int page, int total) {
@@ -59,10 +177,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
         mangaId: widget.mangaId!,
         mangaTitle: widget.mangaTitle,
         coverUrl: widget.mangaCoverUrl ?? '',
-        chapterId: widget.chapter.id,
-        chapterIndex: widget.chapter.index,
-        chapterNumber: widget.chapter.chapter,
-        chapterTitle: widget.chapter.title,
+        chapterId: _currentChapter.id,
+        chapterIndex: _currentChapter.index,
+        chapterNumber: _currentChapter.chapter,
+        chapterTitle: _currentChapter.title,
         pageNumber: page,
         totalPages: total,
       );
@@ -71,6 +189,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -146,14 +266,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                             const SizedBox(width: 12),
                             ElevatedButton.icon(
                               onPressed: () {
-                                final mangaProvider = context.read<MangaProvider>();
-                                reader.loadChapter(
-                                  widget.chapter.id,
-                                  chapterIndex: widget.chapter.index,
-                                  mangaId: widget.mangaId,
-                                  serverType: widget.chapter.serverType,
-                                  suwayomiUrl: mangaProvider.suwayomiUrl,
-                                );
+                                _loadCurrentChapterPages();
                               },
                               icon: const Icon(Icons.refresh_rounded, size: 18),
                               label: const Text('Coba Lagi'),
@@ -188,18 +301,26 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  /// Mode Webtoon: Scroll Vertikal Cepat dengan Pre-fetching 2500px dan MemCache
+  /// Mode Webtoon: Scroll Vertikal Cepat dengan Pre-fetching 2500px dan Auto-load Next Chapter di Ujung Bawah
   Widget _buildWebtoonView(ReaderProvider reader) {
+    final hasFooter = reader.pageUrls.isNotEmpty;
+    final totalCount = reader.pageUrls.length + (hasFooter ? 1 : 0);
+
     return ListView.builder(
+      controller: _scrollController,
       padding: EdgeInsets.zero,
-      cacheExtent: 2500, // Preload gambar ke depan agar tidak blank saat scroll cepat
-      itemCount: reader.pageUrls.length,
+      cacheExtent: 2500,
+      itemCount: totalCount,
       itemBuilder: (context, index) {
+        if (index == reader.pageUrls.length) {
+          return _buildChapterEndFooter(reader);
+        }
+
         final url = reader.pageUrls[index];
         return CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.fitWidth,
-          memCacheWidth: 1080, // Optimasi RAM agar decode gambar 4x lebih cepat
+          memCacheWidth: 1080,
           placeholder: (context, url) => Container(
             height: 350,
             color: const Color(0xFF141414),
@@ -224,13 +345,26 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   /// Mode Manga Klasik: Horizontal Right-To-Left dengan Pinch-to-Zoom
   Widget _buildMangaPagedView(ReaderProvider reader) {
+    final hasFooter = reader.pageUrls.isNotEmpty;
+    final totalCount = reader.pageUrls.length + (hasFooter ? 1 : 0);
+
     return PhotoViewGallery.builder(
       scrollPhysics: const BouncingScrollPhysics(),
       builder: (BuildContext context, int index) {
+        if (index == reader.pageUrls.length) {
+          return PhotoViewGalleryPageOptions.customChild(
+            child: Center(
+              child: SingleChildScrollView(
+                child: _buildChapterEndFooter(reader),
+              ),
+            ),
+          );
+        }
+
         return PhotoViewGalleryPageOptions(
           imageProvider: CachedNetworkImageProvider(
             reader.pageUrls[index],
-            maxWidth: 1080, // Optimasi memori
+            maxWidth: 1080,
           ),
           initialScale: PhotoViewComputedScale.contained,
           minScale: PhotoViewComputedScale.contained,
@@ -238,7 +372,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           heroAttributes: PhotoViewHeroAttributes(tag: 'page_$index'),
         );
       },
-      itemCount: reader.pageUrls.length,
+      itemCount: totalCount,
       loadingBuilder: (context, event) => const Center(
         child: CircularProgressIndicator(color: AppTheme.primaryColor),
       ),
@@ -246,10 +380,156 @@ class _ReaderScreenState extends State<ReaderScreen> {
       onPageChanged: (index) {
         final page = index + 1;
         reader.setCurrentPage(page);
-        _saveProgress(page, reader.totalPages);
+        if (index < reader.pageUrls.length) {
+          _saveProgress(page, reader.totalPages);
+        }
       },
       reverse: reader.readerMode == ReaderMode.mangaRTL,
     );
+  }
+
+  /// Komponen Footer di Akhir Halaman: Navigasi Chapter Berikutnya atau Badge END
+  Widget _buildChapterEndFooter(ReaderProvider reader) {
+    if (_isLoadingNextChapter) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+        color: const Color(0xFF0F0F12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: AppTheme.primaryColor),
+            const SizedBox(height: 16),
+            Text(
+              'Memuat ${_nextChapter?.displayName ?? "Chapter Selanjutnya"}...',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_isLastChapter) {
+      // Tampilan jika chapter sudah habis (Tamat / END)
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+        color: const Color(0xFF0D0D0F),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF3366), Color(0xFFFF6B6B)],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF3366).withOpacity(0.4),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Text(
+                '— END —',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Chapter Sudah Habis (Tamat)',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Anda telah menyelesaikan chapter terakhir dari komik ini.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: Colors.white60,
+              ),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back_rounded, size: 18),
+              label: const Text('Kembali ke Detail'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final nextCh = _nextChapter;
+    if (nextCh != null) {
+      // Tampilan jika ada chapter berikutnya
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+        color: const Color(0xFF111114),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_downward_rounded, color: AppTheme.primaryColor, size: 28),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Akhir dari ${_currentChapter.displayName}',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Gulir ke bawah untuk membuka chapter berikutnya',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadNextChapter,
+              icon: const Icon(Icons.skip_next_rounded, size: 20),
+              label: Text('Buka ${nextCh.displayName}'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildTopOverlay(BuildContext context, ReaderProvider reader) {
@@ -298,7 +578,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     ),
                   ),
                   Text(
-                    widget.chapter.displayName,
+                    _currentChapter.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
@@ -312,7 +592,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             // Tombol Tonton Video Cosplay jika tersedia
             if (widget.mangaTitle.toLowerCase().contains('cosplay') ||
                 widget.mangaTitle.toLowerCase().contains('video') ||
-                widget.chapter.url.contains('cosplaytele')) ...[
+                _currentChapter.url.contains('cosplaytele')) ...[
               IconButton(
                 icon: Container(
                   padding: const EdgeInsets.all(6),
@@ -332,10 +612,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           id: widget.mangaId ?? widget.mangaTitle,
                           title: widget.mangaTitle,
                           status: 'ongoing',
-                          realUrl: widget.chapter.url,
+                          realUrl: _currentChapter.url,
                           directCoverUrl: widget.mangaCoverUrl,
                         ),
-                        chapterRealUrl: widget.chapter.url,
+                        chapterRealUrl: _currentChapter.url,
                       ),
                     ),
                   );

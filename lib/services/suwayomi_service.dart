@@ -189,8 +189,9 @@ class SuwayomiService {
     }
 
     final base = cleanUrl(serverUrl);
-    // Suwayomi API v1 mewajibkan format: /api/v1/source/{sourceId}/search?query=...&pageNum=...
-    final uri = Uri.parse('$base/api/v1/source/$sourceId/search?query=${Uri.encodeComponent(cleanQ)}&pageNum=$page');
+    // Suwayomi API v1 mewajibkan parameter searchTerm (dan query sebagai kompatibilitas)
+    final encoded = Uri.encodeComponent(cleanQ);
+    final uri = Uri.parse('$base/api/v1/source/$sourceId/search?searchTerm=$encoded&query=$encoded&pageNum=$page');
     final res = await _client.get(uri).timeout(const Duration(seconds: 25));
 
     if (res.statusCode == 200) {

@@ -66,8 +66,13 @@ class MangaModel {
       }
     }
 
-    final genreList = json['genre'] as List<dynamic>? ?? [];
-    final tags = genreList.map((g) => g.toString()).toList();
+    List<String> tags = [];
+    final rawGenre = json['genre'];
+    if (rawGenre is List) {
+      tags = rawGenre.map((g) => g.toString().trim()).where((g) => g.isNotEmpty).toList();
+    } else if (rawGenre is String && rawGenre.trim().isNotEmpty) {
+      tags = rawGenre.split(RegExp(r'[,|]')).map((g) => g.trim()).where((g) => g.isNotEmpty).toList();
+    }
     final author = json['author']?.toString() ?? json['artist']?.toString();
     final realUrl = json['realUrl']?.toString() ?? json['url']?.toString();
 
