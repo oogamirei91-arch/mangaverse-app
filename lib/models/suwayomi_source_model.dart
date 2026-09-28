@@ -35,7 +35,19 @@ class SuwayomiSourceModel {
     'isNsfw': isNsfw,
   };
 
-  String get displayName => isNsfw
+  /// Cek apakah sumber merupakan sumber khusus konten dewasa murni (Hentai/18+)
+  bool get isDedicatedNsfw {
+    final lower = name.toLowerCase();
+    return lower.contains('hentai') ||
+        lower.contains('doujin') ||
+        lower.contains('18') ||
+        lower.contains('crot') ||
+        lower.contains('babes') ||
+        lower.contains('femjoy') ||
+        lower.contains('cosplay');
+  }
+
+  String get displayName => isDedicatedNsfw
       ? '$name (${lang.toUpperCase()}) [18+]'
-      : '$name (${lang.toUpperCase()}) [SAFE]';
+      : '$name (${lang.toUpperCase()})';
 }

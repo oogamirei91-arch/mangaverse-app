@@ -22,7 +22,7 @@ class MangaProvider extends ChangeNotifier {
   bool _isSearching = false;
   bool _isAdvancedSearching = false;
 
-  String _selectedLanguage = 'id';
+  String _selectedLanguage = 'all';
   String _selectedComicType = 'all';
   bool _isSafeSearchEnabled = true;
   String? _errorMessage;
@@ -39,7 +39,7 @@ class MangaProvider extends ChangeNotifier {
   // State Pencarian Lanjutan
   String _advComicType = 'all';
   String _advStatus = 'all';
-  String _advLanguage = 'id';
+  String _advLanguage = 'all';
   List<String> _advSelectedGenreIds = [];
   List<String> _advSelectedRatings = ['safe', 'suggestive', 'erotica', 'pornographic'];
 
@@ -65,23 +65,13 @@ class MangaProvider extends ChangeNotifier {
       return l == 'id' || l == 'en' || l == 'eng';
     }).toList();
 
-    // Filter berdasarkan pilihan bahasa aktif (id, en, atau all)
-    List<SuwayomiSourceModel> byLang;
-    if (_selectedLanguage == 'id') {
-      byLang = online.where((s) => s.lang.toLowerCase() == 'id').toList();
-    } else if (_selectedLanguage == 'en') {
-      byLang = online.where((s) => s.lang.toLowerCase() == 'en' || s.lang.toLowerCase() == 'eng').toList();
-    } else {
-      byLang = online;
-    }
-    final effectiveList = byLang.isNotEmpty ? byLang : online;
-
+    // Saat Safe Search ON: sembunyikan sumber khusus 18+ murni
+    // Saat Safe Search OFF (Filter 18+ ON): tampilkan semua sumber ID & EN termasuk 18+
     if (_isSafeSearchEnabled) {
-      final safe = effectiveList.where((s) => !s.isNsfw).toList();
-      return safe.isNotEmpty ? safe : effectiveList;
+      final safe = online.where((s) => !s.isDedicatedNsfw).toList();
+      return safe.isNotEmpty ? safe : online;
     } else {
-      final nsfw = effectiveList.where((s) => s.isNsfw).toList();
-      return nsfw.isNotEmpty ? nsfw : effectiveList;
+      return online;
     }
   }
 
@@ -280,8 +270,18 @@ class MangaProvider extends ChangeNotifier {
       notifyListeners();
 
       final available = suwayomiSources;
-      if (available.isNotEmpty && !available.any((s) => s.id == _suwayomiSourceId)) {
-        setSuwayomiSource(available.first.id, available.first.displayName);
+      if (lang == 'id') {
+        final idSource = available.firstWhere(
+          (s) => s.lang.toLowerCase() == 'id',
+          orElse: () => available.first,
+        );
+        setSuwayomiSource(idSource.id, idSource.displayName);
+      } else if (lang == 'en') {
+        final enSource = available.firstWhere(
+          (s) => s.lang.toLowerCase() == 'en' || s.lang.toLowerCase() == 'eng',
+          orElse: () => available.first,
+        );
+        setSuwayomiSource(enSource.id, enSource.displayName);
       } else {
         fetchHomeData();
       }
