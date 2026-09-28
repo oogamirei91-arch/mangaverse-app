@@ -182,6 +182,59 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 0. Sumber Komik yang Dicari
+          if (provider.suwayomiSources.isNotEmpty) ...[
+            _buildFilterLabel('Sumber Komik yang Dicari:'),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: provider.suwayomiSourceId,
+                  isExpanded: true,
+                  dropdownColor: AppTheme.surfaceColor,
+                  icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.primaryColor),
+                  items: provider.suwayomiSources.map((source) {
+                    return DropdownMenuItem(
+                      value: source.id,
+                      child: Row(
+                        children: [
+                          Icon(
+                            source.isDedicatedNsfw ? Icons.warning_amber_rounded : Icons.extension_rounded,
+                            size: 16,
+                            color: source.isDedicatedNsfw ? Colors.redAccent : AppTheme.primaryColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              source.displayName,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: source.isDedicatedNsfw ? const Color(0xFFFF6B6B) : Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (selectedId) {
+                    if (selectedId != null) {
+                      final selected = provider.suwayomiSources.firstWhere((s) => s.id == selectedId);
+                      provider.setSuwayomiSource(selected.id, selected.name);
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
           // A. Tipe Komik
           _buildFilterLabel('Tipe Komik:'),
           Wrap(

@@ -235,13 +235,13 @@ class MangaProvider extends ChangeNotifier {
       if (tagsLower.any((t) => t.contains(kw))) return true;
       if (m.title.toLowerCase().contains(kw)) return true;
     }
-    // Jika komik berasal dari sumber yang sudah ditandai isNsfw
+    // Jika komik berasal dari sumber khusus 18+/Hentai murni (3Hentai, HentaiFox, dll)
     if (m.sourceId != null) {
       final src = _suwayomiSources.firstWhere(
         (s) => s.id == m.sourceId,
         orElse: () => SuwayomiSourceModel(id: '', name: '', lang: '', isNsfw: false),
       );
-      if (src.isNsfw) return true;
+      if (src.isDedicatedNsfw) return true;
     }
     return false;
   }
@@ -411,26 +411,60 @@ class MangaProvider extends ChangeNotifier {
   void resetAdvFilters() {
     _advComicType = 'all';
     _advStatus = 'all';
-    _advLanguage = 'id';
+    _advLanguage = 'all';
     _advSelectedGenreIds.clear();
     _advSelectedRatings = ['safe', 'suggestive', 'erotica', 'pornographic'];
     _advancedSearchResults.clear();
     notifyListeners();
   }
 
-  /// Eksekusi Pencarian Lanjutan
+  /// Eksekusi Pencarian Lanjutan dengan Filter Sesuai Sumber
   Future<void> executeAdvancedSearch(String query) async {
     _isAdvancedSearching = true;
     notifyListeners();
 
     try {
       if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
-        _advancedSearchResults = await _suwayomiService.searchManga(
+        final rawResults = await _suwayomiService.searchManga(
           _suwayomiUrl,
           _suwayomiSourceId!,
           query,
           page: 1,
         );
+
+        _advancedSearchResults = rawResults.where((manga) {
+          // 1. Filter Status
+          if (_advStatus != 'all') {
+            final st = manga.status.toLowerCase();
+            if (_advStatus == 'ongoing' && !st.contains('ongoing') && !st.contains('publishing')) {
+              return false;
+            }
+            if (_advStatus == 'completed' && !st.contains('completed') && !st.contains('finished')) {
+              return false;
+            }
+          }
+
+          // 2. Filter Tipe Komik (Manga, Manhwa, Manhua)
+          if (_advComicType != 'all') {
+            final typeLower = _advComicType.toLowerCase();
+            final titleLower = manga.title.toLowerCase();
+            final tagsLower = manga.tags.map((t) => t.toLowerCase()).toList();
+            final matchesType = titleLower.contains(typeLower) || tagsLower.contains(typeLower);
+            if (!matchesType) return false;
+          }
+
+          // 3. Filter Genre Terpilih
+          if (_advSelectedGenreIds.isNotEmpty) {
+            final tagsLower = manga.tags.map((t) => t.toLowerCase()).toList();
+            for (final genre in _advSelectedGenreIds) {
+              if (!tagsLower.any((t) => t.contains(genre.toLowerCase()))) {
+                return false;
+              }
+            }
+          }
+
+          return true;
+        }).toList();
       } else {
         _advancedSearchResults = [];
       }
