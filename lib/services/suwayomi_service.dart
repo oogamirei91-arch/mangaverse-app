@@ -28,7 +28,7 @@ class SuwayomiService {
     final base = cleanUrl(serverUrl);
     try {
       final uri = Uri.parse('$base/api/v1/source/list');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 7));
+      final res = await _client.get(uri).timeout(const Duration(seconds: 15));
 
       if (res.statusCode == 200) {
         final List data = jsonDecode(res.body);
@@ -51,7 +51,7 @@ class SuwayomiService {
       return (
         success: false,
         sourceCount: 0,
-        message: 'Gagal terhubung ke $base. Pastikan Suwayomi-Server aktif.',
+        message: 'Gagal: $e',
         sources: <SuwayomiSourceModel>[],
       );
     }
