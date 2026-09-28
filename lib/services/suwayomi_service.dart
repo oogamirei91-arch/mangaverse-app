@@ -67,11 +67,18 @@ class SuwayomiService {
         }
 
         if (decoded is List) {
-          final sources = decoded.map((item) => SuwayomiSourceModel.fromJson(item)).toList();
+          final sources = decoded
+              .map((item) => SuwayomiSourceModel.fromJson(item))
+              .where((s) {
+                if (s.id == '0') return false;
+                final l = s.lang.toLowerCase();
+                return l == 'id' || l == 'en' || l == 'eng';
+              })
+              .toList();
           return (
             success: true,
             sourceCount: sources.length,
-            message: 'Terhubung! Ditemukan ${sources.length} ekstensi sumber.',
+            message: 'Terhubung! Ditemukan ${sources.length} ekstensi sumber (ID & EN).',
             sources: sources,
           );
         } else {
@@ -108,7 +115,14 @@ class SuwayomiService {
 
     if (res.statusCode == 200) {
       final List data = jsonDecode(res.body);
-      return data.map((item) => SuwayomiSourceModel.fromJson(item)).toList();
+      return data
+          .map((item) => SuwayomiSourceModel.fromJson(item))
+          .where((s) {
+            if (s.id == '0') return false;
+            final l = s.lang.toLowerCase();
+            return l == 'id' || l == 'en' || l == 'eng';
+          })
+          .toList();
     }
     throw Exception('Gagal memuat sumber Suwayomi (${res.statusCode})');
   }

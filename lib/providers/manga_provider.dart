@@ -56,17 +56,32 @@ class MangaProvider extends ChangeNotifier {
   bool get isSafeSearchEnabled => _isSafeSearchEnabled;
   String? get errorMessage => _errorMessage;
 
-  // Filter Sumber Komik berdasarkan Safe Search
-  // Safe Search ON: Hanya sumber isNsfw: false
-  // Safe Search OFF (Filter 18+ ON): Hanya sumber isNsfw: true (atau semua jika tidak ada)
+  // Filter Sumber Komik: HANYA BAHASA ID & EN (sumber bahasa lain tidak dimasukkan)
+  // Serta difilter berdasarkan status Safe Search (Safe vs 18+)
   List<SuwayomiSourceModel> get suwayomiSources {
-    final online = _suwayomiSources.where((s) => s.id != '0').toList();
-    if (_isSafeSearchEnabled) {
-      final safe = online.where((s) => !s.isNsfw).toList();
-      return safe.isNotEmpty ? safe : online;
+    final online = _suwayomiSources.where((s) {
+      if (s.id == '0') return false;
+      final l = s.lang.toLowerCase();
+      return l == 'id' || l == 'en' || l == 'eng';
+    }).toList();
+
+    // Filter berdasarkan pilihan bahasa aktif (id, en, atau all)
+    List<SuwayomiSourceModel> byLang;
+    if (_selectedLanguage == 'id') {
+      byLang = online.where((s) => s.lang.toLowerCase() == 'id').toList();
+    } else if (_selectedLanguage == 'en') {
+      byLang = online.where((s) => s.lang.toLowerCase() == 'en' || s.lang.toLowerCase() == 'eng').toList();
     } else {
-      final nsfw = online.where((s) => s.isNsfw).toList();
-      return nsfw.isNotEmpty ? nsfw : online;
+      byLang = online;
+    }
+    final effectiveList = byLang.isNotEmpty ? byLang : online;
+
+    if (_isSafeSearchEnabled) {
+      final safe = effectiveList.where((s) => !s.isNsfw).toList();
+      return safe.isNotEmpty ? safe : effectiveList;
+    } else {
+      final nsfw = effectiveList.where((s) => s.isNsfw).toList();
+      return nsfw.isNotEmpty ? nsfw : effectiveList;
     }
   }
 
@@ -150,7 +165,12 @@ class MangaProvider extends ChangeNotifier {
     _suwayomiConnectionStatus = result.message;
 
     if (result.success) {
-      _suwayomiSources = result.sources;
+      // HANYA simpan sumber bahasa ID dan EN, buang semua bahasa lainnya
+      _suwayomiSources = result.sources.where((s) {
+        if (s.id == '0') return false;
+        final l = s.lang.toLowerCase();
+        return l == 'id' || l == 'en' || l == 'eng';
+      }).toList();
       final availableSources = suwayomiSources;
 
       // Jika belum ada sumber yang dipilih atau sumber tidak valid di mode saat ini
@@ -253,12 +273,18 @@ class MangaProvider extends ChangeNotifier {
     }
   }
 
-  /// Ganti filter bahasa (id = Indonesia, en = Inggris, all = Semua)
+  /// Ganti filter bahasa (id = Indonesia, en = Inggris, all = Semua ID & EN)
   void setLanguageFilter(String lang) {
     if (_selectedLanguage != lang) {
       _selectedLanguage = lang;
       notifyListeners();
-      fetchHomeData();
+
+      final available = suwayomiSources;
+      if (available.isNotEmpty && !available.any((s) => s.id == _suwayomiSourceId)) {
+        setSuwayomiSource(available.first.id, available.first.displayName);
+      } else {
+        fetchHomeData();
+      }
     }
   }
 
