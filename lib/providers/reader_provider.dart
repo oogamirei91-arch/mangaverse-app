@@ -45,7 +45,7 @@ class ReaderProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = suwayomiUrl ?? 'http://172.16.2.102:4567';
+      final url = suwayomiUrl ?? 'https://attending-alien-voip-katrina.trycloudflare.com';
       final mId = mangaId ?? '1';
       _pagesData = await _suwayomiService.getChapterPages(url, mId, chapterId);
 

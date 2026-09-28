@@ -178,7 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     controller: _suwayomiUrlController,
                     style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'http://172.16.2.102:4567 atau domain Anda',
+                      hintText: 'https://attending-alien-voip-katrina.trycloudflare.com atau domain Anda',
                       hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white30, fontSize: 12),
                       filled: true,
                       fillColor: AppTheme.cardColor,

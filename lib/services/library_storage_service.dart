@@ -80,33 +80,13 @@ class LibraryStorageService {
     }
   }
 
-  /// Memperbarui progres bacaan (Upsert ke daftar histori)
-  Future<void> saveReadingProgress({
-    required String mangaId,
-    required String mangaTitle,
-    required String coverUrl,
-    required String chapterId,
-    required String chapterNumber,
-    required int lastPageRead,
-    required int totalPages,
-  }) async {
+  /// Menyimpan riwayat bacaan (saveHistory)
+  Future<void> saveHistory(ReadingHistoryModel entry) async {
     final prefs = await SharedPreferences.getInstance();
     final historyList = await getHistory();
 
-    historyList.removeWhere((h) => h.mangaId == mangaId);
-
-    final newHistory = ReadingHistoryModel(
-      mangaId: mangaId,
-      mangaTitle: mangaTitle,
-      coverUrl: coverUrl,
-      chapterId: chapterId,
-      chapterNumber: chapterNumber,
-      lastPageRead: lastPageRead,
-      totalPages: totalPages,
-      lastReadAt: DateTime.now(),
-    );
-
-    historyList.insert(0, newHistory);
+    historyList.removeWhere((h) => h.mangaId == entry.mangaId);
+    historyList.insert(0, entry);
 
     // Batasi histori hingga 100 komik terakhir
     if (historyList.length > 100) {
@@ -117,6 +97,32 @@ class LibraryStorageService {
     await prefs.setString(_historyKey, jsonEncode(rawList));
   }
 
+  /// Memperbarui progres bacaan (Upsert ke daftar histori)
+  Future<void> saveReadingProgress({
+    required String mangaId,
+    required String mangaTitle,
+    required String coverUrl,
+    required String chapterId,
+    required String chapterNumber,
+    String? chapterTitle,
+    int? pageNumber,
+    int? lastPageRead,
+    required int totalPages,
+  }) async {
+    final newHistory = ReadingHistoryModel(
+      mangaId: mangaId,
+      mangaTitle: mangaTitle,
+      coverUrl: coverUrl,
+      chapterId: chapterId,
+      chapterNumber: chapterNumber,
+      chapterTitle: chapterTitle,
+      pageNumber: pageNumber ?? lastPageRead ?? 1,
+      totalPages: totalPages,
+      lastReadAt: DateTime.now(),
+    );
+    await saveHistory(newHistory);
+  }
+
   /// Menghapus histori bacaan untuk komik tertentu
   Future<void> removeHistory(String mangaId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -125,6 +131,11 @@ class LibraryStorageService {
 
     final rawList = historyList.map((h) => h.toJson()).toList();
     await prefs.setString(_historyKey, jsonEncode(rawList));
+  }
+
+  /// Alias untuk removeHistory agar kompatibel dengan LibraryProvider
+  Future<void> removeHistoryItem(String mangaId) async {
+    await removeHistory(mangaId);
   }
 
   /// Menghapus semua riwayat bacaan

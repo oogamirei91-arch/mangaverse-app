@@ -16,10 +16,13 @@ class ReadingHistoryModel {
     required this.chapterId,
     required this.chapterNumber,
     this.chapterTitle,
-    required this.pageNumber,
+    int? pageNumber,
+    int? lastPageRead,
     required this.totalPages,
     required this.lastReadAt,
-  });
+  }) : pageNumber = pageNumber ?? lastPageRead ?? 1;
+
+  int get lastPageRead => pageNumber;
 
   Map<String, dynamic> toJson() {
     return {
@@ -30,6 +33,7 @@ class ReadingHistoryModel {
       'chapterNumber': chapterNumber,
       'chapterTitle': chapterTitle,
       'pageNumber': pageNumber,
+      'lastPageRead': pageNumber,
       'totalPages': totalPages,
       'lastReadAt': lastReadAt.toIso8601String(),
     };
@@ -37,13 +41,13 @@ class ReadingHistoryModel {
 
   factory ReadingHistoryModel.fromJson(Map<String, dynamic> json) {
     return ReadingHistoryModel(
-      mangaId: json['mangaId'] as String,
-      mangaTitle: json['mangaTitle'] as String,
-      coverUrl: json['coverUrl'] as String,
-      chapterId: json['chapterId'] as String,
-      chapterNumber: json['chapterNumber'] as String,
+      mangaId: json['mangaId'] as String? ?? '',
+      mangaTitle: json['mangaTitle'] as String? ?? '',
+      coverUrl: json['coverUrl'] as String? ?? '',
+      chapterId: json['chapterId'] as String? ?? '',
+      chapterNumber: json['chapterNumber']?.toString() ?? '',
       chapterTitle: json['chapterTitle'] as String?,
-      pageNumber: (json['pageNumber'] as num?)?.toInt() ?? 1,
+      pageNumber: (json['pageNumber'] as num?)?.toInt() ?? (json['lastPageRead'] as num?)?.toInt() ?? 1,
       totalPages: (json['totalPages'] as num?)?.toInt() ?? 0,
       lastReadAt: DateTime.tryParse(json['lastReadAt']?.toString() ?? '') ?? DateTime.now(),
     );
