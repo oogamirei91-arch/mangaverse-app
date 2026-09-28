@@ -291,13 +291,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               value: source.id,
                               child: Row(
                                 children: [
-                                  const Icon(Icons.extension_rounded, size: 16, color: AppTheme.primaryColor),
+                                  Icon(
+                                    source.isNsfw ? Icons.warning_amber_rounded : Icons.extension_rounded,
+                                    size: 16,
+                                    color: source.isNsfw ? Colors.redAccent : AppTheme.primaryColor,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       source.displayName,
                                       style: GoogleFonts.plusJakartaSans(
-                                        color: Colors.white,
+                                        color: source.isNsfw ? const Color(0xFFFF6B6B) : Colors.white,
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -396,7 +400,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 title: Text(
-                  'Safe Search (Filter 18+)',
+                  'Safe Search & Filter 18+',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -405,8 +409,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 subtitle: Text(
                   mangaProvider.isSafeSearchEnabled
-                      ? 'Aktif: Konten dewasa (18+) diblokir secara otomatis.'
-                      : 'Nonaktif: Menampilkan semua kategori komik termasuk 18+.',
+                      ? 'Safe Search AKTIF: Hanya sumber aman (isNsfw: false) & sembunyikan komik 18+.'
+                      : 'Filter 18+ AKTIF: Membuka sumber dewasa (isNsfw: true) & munculkan komik 18+/NSFW.',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     color: AppTheme.textSecondary,

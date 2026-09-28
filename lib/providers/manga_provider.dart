@@ -43,10 +43,10 @@ class MangaProvider extends ChangeNotifier {
   List<String> _advSelectedGenreIds = [];
   List<String> _advSelectedRatings = ['safe', 'suggestive', 'erotica', 'pornographic'];
 
-  List<MangaModel> get popularManga => _popularManga;
-  List<MangaModel> get latestManga => _latestManga;
-  List<MangaModel> get searchResults => _searchResults;
-  List<MangaModel> get advancedSearchResults => _advancedSearchResults;
+  List<MangaModel> get popularManga => _applyContentFilter(_popularManga);
+  List<MangaModel> get latestManga => _applyContentFilter(_latestManga);
+  List<MangaModel> get searchResults => _applyContentFilter(_searchResults);
+  List<MangaModel> get advancedSearchResults => _applyContentFilter(_advancedSearchResults);
   bool get isLoadingPopular => _isLoadingPopular;
   bool get isLoadingLatest => _isLoadingLatest;
   bool get isSearching => _isSearching;
@@ -56,13 +56,26 @@ class MangaProvider extends ChangeNotifier {
   bool get isSafeSearchEnabled => _isSafeSearchEnabled;
   String? get errorMessage => _errorMessage;
 
+  // Filter Sumber Komik berdasarkan Safe Search
+  // Safe Search ON: Hanya sumber isNsfw: false
+  // Safe Search OFF (Filter 18+ ON): Hanya sumber isNsfw: true (atau semua jika tidak ada)
+  List<SuwayomiSourceModel> get suwayomiSources {
+    final online = _suwayomiSources.where((s) => s.id != '0').toList();
+    if (_isSafeSearchEnabled) {
+      final safe = online.where((s) => !s.isNsfw).toList();
+      return safe.isNotEmpty ? safe : online;
+    } else {
+      final nsfw = online.where((s) => s.isNsfw).toList();
+      return nsfw.isNotEmpty ? nsfw : online;
+    }
+  }
+
   // Getters Suwayomi & Server
   String get activeServer => 'suwayomi';
   bool get isSuwayomiActive => true;
   String get suwayomiUrl => _suwayomiUrl;
   String? get suwayomiSourceId => _suwayomiSourceId;
   String? get suwayomiSourceName => _suwayomiSourceName;
-  List<SuwayomiSourceModel> get suwayomiSources => _suwayomiSources;
   bool get isTestingSuwayomi => _isTestingSuwayomi;
   String? get suwayomiConnectionStatus => _suwayomiConnectionStatus;
   bool get isSuwayomiConnected => _isSuwayomiConnected;
@@ -138,14 +151,15 @@ class MangaProvider extends ChangeNotifier {
 
     if (result.success) {
       _suwayomiSources = result.sources;
-      // Filter out Local source jika ada sumber manga online
-      final availableSources = result.sources.where((s) => s.id != '0').toList();
-      final effectiveSources = availableSources.isNotEmpty ? availableSources : result.sources;
+      final availableSources = suwayomiSources;
 
-      // Jika belum ada sumber yang dipilih, default ke sumber online pertama
-      if ((_suwayomiSourceId == null || _suwayomiSourceId!.isEmpty) && effectiveSources.isNotEmpty) {
-        _suwayomiSourceId = effectiveSources.first.id;
-        _suwayomiSourceName = effectiveSources.first.displayName;
+      // Jika belum ada sumber yang dipilih atau sumber tidak valid di mode saat ini
+      if (availableSources.isNotEmpty &&
+          (_suwayomiSourceId == null ||
+           _suwayomiSourceId!.isEmpty ||
+           !availableSources.any((s) => s.id == _suwayomiSourceId))) {
+        _suwayomiSourceId = availableSources.first.id;
+        _suwayomiSourceName = availableSources.first.displayName;
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_suwayomiSourceIdPrefKey, _suwayomiSourceId!);
@@ -169,7 +183,57 @@ class MangaProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_safeSearchPrefKey, _isSafeSearchEnabled);
     } catch (_) {}
-    await fetchHomeData();
+
+    // Otomatis alihkan sumber aktif ke sumber yang sesuai dengan mode baru
+    final available = suwayomiSources;
+    if (available.isNotEmpty && !available.any((s) => s.id == _suwayomiSourceId)) {
+      await setSuwayomiSource(available.first.id, available.first.displayName);
+    } else {
+      await fetchHomeData();
+    }
+  }
+
+  /// Filter konten komik berdasarkan status Safe Search
+  List<MangaModel> _applyContentFilter(List<MangaModel> list) {
+    if (_isSafeSearchEnabled) {
+      // Safe Search ON: Sembunyikan semua komik yang berbau NSFW / 18+
+      return list.where((m) => !_isNsfwManga(m)).toList();
+    } else {
+      // Safe Search OFF (Filter 18+ ON): Munculkan semua komik termasuk 18+ dan NSFW
+      return list;
+    }
+  }
+
+  /// Deteksi apakah komik memiliki konten NSFW / 18+
+  bool _isNsfwManga(MangaModel m) {
+    const nsfwKeywords = [
+      'hentai',
+      'ecchi',
+      'adult',
+      'mature',
+      'erotica',
+      'pornographic',
+      'smut',
+      '18+',
+      'doujinshi',
+      'r-18',
+      'r18',
+      'nsfw',
+    ];
+    final tagsLower = m.tags.map((t) => t.toLowerCase()).toList();
+    for (final kw in nsfwKeywords) {
+      if (tagsLower.any((t) => t.contains(kw))) return true;
+      if (m.title.toLowerCase().contains(kw)) return true;
+    }
+    // Jika komik berasal dari sumber yang sudah ditandai isNsfw
+    if (m.sourceId != null) {
+      final src = _suwayomiSources.firstWhere(
+        (s) => s.id == m.sourceId,
+        orElse: () => SuwayomiSourceModel(id: '', name: '', lang: '', isNsfw: false),
+      );
+      if (src.isNsfw) return true;
+    }
+    return false;
   }
 
   /// Memuat data beranda awal

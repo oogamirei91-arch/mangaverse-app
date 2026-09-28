@@ -4,6 +4,7 @@ class SuwayomiSourceModel {
   final String lang;
   final String? iconUrl;
   final bool supportsLatest;
+  final bool isNsfw;
 
   SuwayomiSourceModel({
     required this.id,
@@ -11,6 +12,7 @@ class SuwayomiSourceModel {
     required this.lang,
     this.iconUrl,
     this.supportsLatest = true,
+    this.isNsfw = false,
   });
 
   factory SuwayomiSourceModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class SuwayomiSourceModel {
       lang: json['lang']?.toString() ?? 'all',
       iconUrl: json['iconUrl']?.toString(),
       supportsLatest: json['supportsLatest'] as bool? ?? true,
+      isNsfw: (json['isNsfw'] as bool?) ?? false,
     );
   }
 
@@ -29,7 +32,10 @@ class SuwayomiSourceModel {
     'lang': lang,
     'iconUrl': iconUrl,
     'supportsLatest': supportsLatest,
+    'isNsfw': isNsfw,
   };
 
-  String get displayName => '$name (${lang.toUpperCase()})';
+  String get displayName => isNsfw
+      ? '$name (${lang.toUpperCase()}) [18+]'
+      : '$name (${lang.toUpperCase()}) [SAFE]';
 }
