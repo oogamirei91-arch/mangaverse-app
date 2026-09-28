@@ -178,7 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     controller: _suwayomiUrlController,
                     style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'https://attending-alien-voip-katrina.trycloudflare.com atau domain Anda',
+                      hintText: 'http://192.168.137.1:4567 atau https://pilot-omaha-korea-limousines.trycloudflare.com',
                       hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white30, fontSize: 12),
                       filled: true,
                       fillColor: AppTheme.cardColor,
@@ -193,6 +193,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     onChanged: (val) => mangaProvider.setSuwayomiUrl(val),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '💡 Tips: Gunakan URL Cloudflare jika di luar rumah, atau http://192.168.137.1:4567 jika HP terhubung langsung ke Hotspot PC (lebih cepat & stabil tanpa expired).',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      color: AppTheme.textSecondary.withOpacity(0.8),
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 10),
 

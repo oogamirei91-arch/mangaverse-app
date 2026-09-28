@@ -28,7 +28,7 @@ class MangaProvider extends ChangeNotifier {
   String? _errorMessage;
 
   // --- SUWAYOMI SERVER CONFIGURATION ---
-  String _suwayomiUrl = 'https://attending-alien-voip-katrina.trycloudflare.com';
+  String _suwayomiUrl = 'https://pilot-omaha-korea-limousines.trycloudflare.com';
   String? _suwayomiSourceId;
   String? _suwayomiSourceName;
   List<SuwayomiSourceModel> _suwayomiSources = [];
@@ -100,7 +100,7 @@ class MangaProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _isSafeSearchEnabled = prefs.getBool(_safeSearchPrefKey) ?? true;
-      _suwayomiUrl = prefs.getString(_suwayomiUrlPrefKey) ?? 'https://attending-alien-voip-katrina.trycloudflare.com';
+      _suwayomiUrl = prefs.getString(_suwayomiUrlPrefKey) ?? 'https://pilot-omaha-korea-limousines.trycloudflare.com';
       _suwayomiSourceId = prefs.getString(_suwayomiSourceIdPrefKey);
       _suwayomiSourceName = prefs.getString(_suwayomiSourceNamePrefKey);
       notifyListeners();

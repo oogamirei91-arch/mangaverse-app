@@ -11,7 +11,7 @@ class SuwayomiService {
   /// Membersihkan URL agar valid (menghapus trailing slash, memastikan http/https, membersihkan subpath)
   String cleanUrl(String rawUrl) {
     String trimmed = rawUrl.trim();
-    if (trimmed.isEmpty) return 'https://attending-alien-voip-katrina.trycloudflare.com';
+    if (trimmed.isEmpty) return 'https://pilot-omaha-korea-limousines.trycloudflare.com';
     if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
       trimmed = 'http://$trimmed';
     }
