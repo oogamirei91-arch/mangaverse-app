@@ -12,6 +12,7 @@ class ChapterModel {
   final bool isRead;
   final bool isBookmarked;
   final String serverType;
+  final String? realUrl;
 
   ChapterModel({
     required this.id,
@@ -27,8 +28,10 @@ class ChapterModel {
     this.isRead = false,
     this.isBookmarked = false,
     this.serverType = 'suwayomi',
+    this.realUrl,
   });
 
+  String get url => realUrl ?? '';
   int get chapterIndex => index ?? int.tryParse(id) ?? 1;
 
   String get displayName {
@@ -52,6 +55,7 @@ class ChapterModel {
     final parsedIndex = (rawIndex is num)
         ? rawIndex.toInt()
         : int.tryParse(rawIndex?.toString() ?? '');
+    final realUrl = json['realUrl']?.toString() ?? json['url']?.toString();
 
     return ChapterModel(
       id: chId,
@@ -66,6 +70,7 @@ class ChapterModel {
       isRead: json['read'] == true,
       isBookmarked: json['bookmarked'] == true,
       serverType: 'suwayomi',
+      realUrl: realUrl,
     );
   }
 

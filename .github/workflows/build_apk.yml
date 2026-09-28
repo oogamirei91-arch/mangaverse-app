@@ -48,9 +48,12 @@ jobs:
           sed -i 's/android:label="[^"]*"/android:label="KuroReader"/g' android/app/src/main/AndroidManifest.xml
           # Pastikan izin INTERNET & usesCleartextTraffic tersedia untuk Suwayomi & pemutar video
           if ! grep -q "android.permission.INTERNET" android/app/src/main/AndroidManifest.xml; then
-            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+            sed -i 's/<manifest[^>]*>/&\n    <uses-permission android:name="android.permission.INTERNET"\/>/' android/app/src/main/AndroidManifest.xml
           fi
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
+          # Pastikan minSdkVersion minimal 21 untuk webview_flutter
+          sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle || true
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle || true
 
       # 5. Unduh dependensi aplikasi (pub get)
       - name: Install Dependencies
@@ -62,7 +65,9 @@ jobs:
 
       # 7. Kompilasi APK mode Release
       - name: Build Release APK
-        run: flutter build apk --release
+        run: |
+          flutter analyze || true
+          flutter build apk --release --verbose
 
       # 8. Unggah file APK ke tab Artifacts GitHub agar bisa langsung di-download
       - name: Upload APK Artifact

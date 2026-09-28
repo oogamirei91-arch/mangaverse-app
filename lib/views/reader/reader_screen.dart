@@ -331,9 +331,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         manga: MangaModel(
                           id: widget.mangaId ?? widget.mangaTitle,
                           title: widget.mangaTitle,
-                          url: widget.chapter.url,
-                          coverUrl: widget.mangaCoverUrl ?? '',
-                          latestChapter: widget.chapter.displayName,
+                          status: 'ongoing',
+                          realUrl: widget.chapter.url,
+                          directCoverUrl: widget.mangaCoverUrl,
                         ),
                         chapterRealUrl: widget.chapter.url,
                       ),

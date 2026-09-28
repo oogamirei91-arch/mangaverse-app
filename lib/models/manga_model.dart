@@ -9,6 +9,7 @@ class MangaModel {
   final String? directCoverUrl;
   final String? sourceId;
   final String? coverFileName;
+  final String? realUrl;
 
   MangaModel({
     required this.id,
@@ -21,8 +22,10 @@ class MangaModel {
     this.directCoverUrl,
     this.sourceId,
     this.coverFileName,
+    this.realUrl,
   });
 
+  String get url => realUrl ?? '';
   String get serverType => 'suwayomi';
 
   /// URL Cover thumbnail untuk card dan list
@@ -65,6 +68,7 @@ class MangaModel {
     final genreList = json['genre'] as List<dynamic>? ?? [];
     final tags = genreList.map((g) => g.toString()).toList();
     final author = json['author']?.toString() ?? json['artist']?.toString();
+    final realUrl = json['realUrl']?.toString() ?? json['url']?.toString();
 
     return MangaModel(
       id: mangaId,
@@ -76,6 +80,7 @@ class MangaModel {
       directCoverUrl: fullCover,
       coverFileName: fullCover,
       sourceId: sourceId,
+      realUrl: realUrl,
     );
   }
 
