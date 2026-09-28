@@ -108,12 +108,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 2. Section Server & Sumber Komik (Multi-Server)
+            // 2. Section Server Komik (Suwayomi Engine)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Server & Sumber Komik (Multi-Server)',
+                  'Server Komik (Suwayomi Engine)',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -123,17 +123,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: mangaProvider.isSuwayomiActive
-                        ? AppTheme.secondaryColor.withOpacity(0.2)
-                        : AppTheme.primaryColor.withOpacity(0.2),
+                    color: mangaProvider.isSuwayomiConnected
+                        ? const Color(0xFF06D6A0).withOpacity(0.2)
+                        : Colors.amber.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    mangaProvider.isSuwayomiActive ? 'Suwayomi' : 'MangaDex',
+                    mangaProvider.isSuwayomiConnected ? 'Terhubung' : 'Belum Terhubung',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: mangaProvider.isSuwayomiActive ? AppTheme.secondaryColor : AppTheme.primaryColor,
+                      color: mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.amber,
                     ),
                   ),
                 ),
@@ -141,307 +141,223 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 10),
 
-            // Card Pilihan Server
+            // Card Konfigurasi Server Suwayomi
             Container(
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Opsi 1: MangaDex (Bawaan)
-                  RadioListTile<String>(
-                    value: 'mangadex',
-                    groupValue: mangaProvider.activeServer,
-                    onChanged: (val) {
-                      if (val != null) mangaProvider.setActiveServer(val);
-                    },
-                    activeColor: AppTheme.primaryColor,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    secondary: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.cloud_done_rounded, color: AppTheme.primaryColor, size: 22),
-                    ),
-                    title: Text(
-                      'MangaDex Cloud (Resmi)',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Server bawaan cepat, legal, multi-bahasa (ID & EN), tanpa perlu setup.',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const Divider(height: 1, color: Colors.white10),
-
-                  // Opsi 2: Suwayomi-Server (Tachiyomi Engine)
-                  RadioListTile<String>(
-                    value: 'suwayomi',
-                    groupValue: mangaProvider.activeServer,
-                    onChanged: (val) {
-                      if (val != null) mangaProvider.setActiveServer(val);
-                    },
-                    activeColor: AppTheme.secondaryColor,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    secondary: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.secondaryColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.hub_rounded, color: AppTheme.secondaryColor, size: 22),
-                    ),
-                    title: Text(
-                      'Suwayomi-Server (Eksternal)',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Akses ratusan ekstensi Tachiyomi (MangaFox, KomikIndo, Manhwa18, dll).',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Panel Konfigurasi Suwayomi (Jika Suwayomi Dipilih)
-            if (mangaProvider.isSuwayomiActive) ...[
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.secondaryColor.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.settings_input_component_rounded, size: 18, color: AppTheme.secondaryColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Konfigurasi Suwayomi-Server',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Input URL Server Suwayomi
-                    Text(
-                      'Alamat URL Server:',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textSecondary),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _suwayomiUrlController,
-                      style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'http://192.168.1.100:4567 atau domain Anda',
-                        hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white30, fontSize: 12),
-                        filled: true,
-                        fillColor: AppTheme.cardColor,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppTheme.secondaryColor),
-                        ),
-                      ),
-                      onChanged: (val) => mangaProvider.setSuwayomiUrl(val),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Tombol Tes Koneksi & Status
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: mangaProvider.isTestingSuwayomi
-                            ? null
-                            : () async {
-                                await mangaProvider.testSuwayomiConnection(
-                                  customUrl: _suwayomiUrlController.text,
-                                );
-                              },
-                        icon: mangaProvider.isTestingSuwayomi
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.sync_rounded, size: 18),
-                        label: Text(
-                          mangaProvider.isTestingSuwayomi ? 'Menguji Koneksi...' : 'Tes Koneksi & Ambil Sumber',
-                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.secondaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-
-                    // Pesan Feedback Hasil Tes
-                    if (mangaProvider.suwayomiConnectionStatus != null) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: (mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.redAccent)
-                              .withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: (mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.redAccent)
-                                .withOpacity(0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              mangaProvider.isSuwayomiConnected ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-                              size: 16,
-                              color: mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.redAccent,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                mangaProvider.suwayomiConnectionStatus!,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  color: mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.redAccent,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    // Pilihan Sumber/Ekstensi Aktif
-                    if (mangaProvider.suwayomiSources.isNotEmpty) ...[
-                      const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Icon(Icons.hub_rounded, size: 20, color: AppTheme.primaryColor),
+                      const SizedBox(width: 8),
                       Text(
-                        'Pilih Ekstensi / Sumber Aktif:',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textSecondary),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.cardColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withOpacity(0.1)),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: mangaProvider.suwayomiSourceId,
-                            isExpanded: true,
-                            dropdownColor: AppTheme.surfaceColor,
-                            icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.secondaryColor),
-                            items: mangaProvider.suwayomiSources.map((source) {
-                              return DropdownMenuItem(
-                                value: source.id,
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.extension_rounded, size: 16, color: AppTheme.secondaryColor),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        source.displayName,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (selectedId) {
-                              if (selectedId != null) {
-                                final selected = mangaProvider.suwayomiSources.firstWhere((s) => s.id == selectedId);
-                                mangaProvider.setSuwayomiSource(selected.id, selected.name);
-                              }
-                            },
-                          ),
+                        'Konfigurasi Server Suwayomi',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 12),
 
-                    // Panduan Menjalankan Suwayomi
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(10),
+                  // Input URL Server Suwayomi
+                  Text(
+                    'Alamat URL Server:',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _suwayomiUrlController,
+                    style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'http://172.16.2.102:4567 atau domain Anda',
+                      hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white30, fontSize: 12),
+                      filled: true,
+                      fillColor: AppTheme.cardColor,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.primaryColor),
+                      ),
+                    ),
+                    onChanged: (val) => mangaProvider.setSuwayomiUrl(val),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Tombol Tes Koneksi & Status
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: mangaProvider.isTestingSuwayomi
+                          ? null
+                          : () async {
+                              await mangaProvider.testSuwayomiConnection(
+                                customUrl: _suwayomiUrlController.text,
+                              );
+                            },
+                      icon: mangaProvider.isTestingSuwayomi
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.sync_rounded, size: 18),
+                      label: Text(
+                        mangaProvider.isTestingSuwayomi ? 'Menguji Koneksi...' : 'Tes Koneksi & Ambil Sumber',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+
+                  // Pesan Feedback Hasil Tes
+                  if (mangaProvider.suwayomiConnectionStatus != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: (mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.redAccent)
+                            .withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: (mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.redAccent)
+                              .withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.help_outline_rounded, size: 14, color: Colors.white70),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Cara Menggunakan Suwayomi-Server:',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            mangaProvider.isSuwayomiConnected ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                            size: 16,
+                            color: mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.redAccent,
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '1. Jalankan Suwayomi di PC atau VPS:\n   docker run -p 4567:4567 suwayomi/tachidesk\n2. Buka browser ke http://localhost:4567, masuk ke menu "Extensions" dan pasang sumber komik (MangaFox, KomikIndo, Bato, dll).\n3. Masukkan IP PC/server Anda di kolom URL di atas, lalu klik "Tes Koneksi".',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10.5,
-                              height: 1.5,
-                              color: Colors.white60,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              mangaProvider.suwayomiConnectionStatus!,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: mangaProvider.isSuwayomiConnected ? const Color(0xFF06D6A0) : Colors.redAccent,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
-                ),
+
+                  // Pilihan Sumber/Ekstensi Aktif
+                  if (mangaProvider.suwayomiSources.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      'Pilih Sumber Komik Aktif:',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: mangaProvider.suwayomiSourceId,
+                          isExpanded: true,
+                          dropdownColor: AppTheme.surfaceColor,
+                          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.primaryColor),
+                          items: mangaProvider.suwayomiSources.map((source) {
+                            return DropdownMenuItem(
+                              value: source.id,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.extension_rounded, size: 16, color: AppTheme.primaryColor),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      source.displayName,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (selectedId) {
+                            if (selectedId != null) {
+                              final selected = mangaProvider.suwayomiSources.firstWhere((s) => s.id == selectedId);
+                              mangaProvider.setSuwayomiSource(selected.id, selected.name);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Petunjuk Ekstensi
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.info_outline_rounded, size: 14, color: Colors.white70),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Menambah Sumber / Ekstensi:',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '1. Buka browser di PC ke http://localhost:4567\n2. Masuk ke menu "Browse" > "Extensions" lalu instal ekstensi komik yang diinginkan (Komikindo, Kiryuu, MangaFox, Mangabat, dll).\n3. Klik "Tes Koneksi & Ambil Sumber" di atas untuk memperbarui daftar.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10.5,
+                            height: 1.5,
+                            color: Colors.white60,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
 
             const SizedBox(height: 24),
 
@@ -545,11 +461,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppTheme.textPrimary),
                     ),
                     trailing: Text(
-                      mangaProvider.isSuwayomiActive
-                          ? 'Suwayomi (${mangaProvider.suwayomiSourceName ?? 'Custom'})'
-                          : 'MangaDex API v5',
-                      style: TextStyle(
-                        color: mangaProvider.isSuwayomiActive ? AppTheme.secondaryColor : AppTheme.primaryColor,
+                      'Suwayomi (${mangaProvider.suwayomiSourceName ?? 'Aktif'})',
+                      style: const TextStyle(
+                        color: AppTheme.primaryColor,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),

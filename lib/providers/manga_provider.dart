@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_model.dart';
 import '../models/suwayomi_source_model.dart';
-import '../services/mangadex_service.dart';
 import '../services/suwayomi_service.dart';
 
 class MangaProvider extends ChangeNotifier {
-  final MangaDexService _service = MangaDexService();
   final SuwayomiService _suwayomiService = SuwayomiService();
 
   static const String _safeSearchPrefKey = 'mangaverse_safe_search_enabled';
-  static const String _activeServerPrefKey = 'kuro_active_server';
   static const String _suwayomiUrlPrefKey = 'kuro_suwayomi_url';
   static const String _suwayomiSourceIdPrefKey = 'kuro_suwayomi_source_id';
   static const String _suwayomiSourceNamePrefKey = 'kuro_suwayomi_source_name';
@@ -25,14 +22,13 @@ class MangaProvider extends ChangeNotifier {
   bool _isSearching = false;
   bool _isAdvancedSearching = false;
 
-  String _selectedLanguage = 'id'; // Default Bahasa Indonesia
-  String _selectedComicType = 'all'; // all, manga, manhwa, manhua
-  bool _isSafeSearchEnabled = true; // Default Terkunci Aman (18+ nonaktif)
+  String _selectedLanguage = 'id';
+  String _selectedComicType = 'all';
+  bool _isSafeSearchEnabled = true;
   String? _errorMessage;
 
-  // --- MULTI-SERVER & SUWAYOMI CONFIGURATION ---
-  String _activeServer = 'mangadex'; // 'mangadex' | 'suwayomi'
-  String _suwayomiUrl = 'http://10.0.2.2:4567';
+  // --- SUWAYOMI SERVER CONFIGURATION ---
+  String _suwayomiUrl = 'http://172.16.2.102:4567';
   String? _suwayomiSourceId;
   String? _suwayomiSourceName;
   List<SuwayomiSourceModel> _suwayomiSources = [];
@@ -40,9 +36,9 @@ class MangaProvider extends ChangeNotifier {
   String? _suwayomiConnectionStatus;
   bool _isSuwayomiConnected = false;
 
-  // State untuk Pencarian Lanjutan
+  // State Pencarian Lanjutan
   String _advComicType = 'all';
-  String _advStatus = 'all'; // all, ongoing, completed
+  String _advStatus = 'all';
   String _advLanguage = 'id';
   List<String> _advSelectedGenreIds = [];
   List<String> _advSelectedRatings = ['safe', 'suggestive', 'erotica', 'pornographic'];
@@ -60,9 +56,9 @@ class MangaProvider extends ChangeNotifier {
   bool get isSafeSearchEnabled => _isSafeSearchEnabled;
   String? get errorMessage => _errorMessage;
 
-  // Getters Multi-Server & Suwayomi
-  String get activeServer => _activeServer;
-  bool get isSuwayomiActive => _activeServer == 'suwayomi';
+  // Getters Suwayomi & Server
+  String get activeServer => 'suwayomi';
+  bool get isSuwayomiActive => true;
   String get suwayomiUrl => _suwayomiUrl;
   String? get suwayomiSourceId => _suwayomiSourceId;
   String? get suwayomiSourceName => _suwayomiSourceName;
@@ -86,31 +82,19 @@ class MangaProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _isSafeSearchEnabled = prefs.getBool(_safeSearchPrefKey) ?? true;
-      _activeServer = prefs.getString(_activeServerPrefKey) ?? 'mangadex';
-      _suwayomiUrl = prefs.getString(_suwayomiUrlPrefKey) ?? 'http://10.0.2.2:4567';
+      _suwayomiUrl = prefs.getString(_suwayomiUrlPrefKey) ?? 'http://172.16.2.102:4567';
       _suwayomiSourceId = prefs.getString(_suwayomiSourceIdPrefKey);
       _suwayomiSourceName = prefs.getString(_suwayomiSourceNamePrefKey);
       notifyListeners();
 
-      if (_activeServer == 'suwayomi') {
-        // Cek koneksi & muat sumber Suwayomi di latar belakang
-        testSuwayomiConnection();
-      }
+      // Sambungkan ke Suwayomi dan ambil sumber komik
+      await testSuwayomiConnection();
     } catch (_) {}
     await fetchHomeData();
   }
 
-  /// Mengubah Server Aktif ('mangadex' atau 'suwayomi')
-  Future<void> setActiveServer(String server) async {
-    if (_activeServer != server) {
-      _activeServer = server;
-      notifyListeners();
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_activeServerPrefKey, server);
-      } catch (_) {}
-      await fetchHomeData();
-    }
+  void setActiveServer(String server) {
+    // KuroReader sekarang 100% menggunakan Suwayomi
   }
 
   /// Mengatur Alamat URL Suwayomi-Server
@@ -123,17 +107,17 @@ class MangaProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// Memilih Sumber/Ekstensi aktif di Suwayomi (e.g. MangaFox, KomikIndo)
+  /// Memilih Sumber Komik Aktif dari Suwayomi (Komikindo, Kiryuu, MangaFox, dll)
   Future<void> setSuwayomiSource(String sourceId, String sourceName) async {
-    _suwayomiSourceId = sourceId;
-    _suwayomiSourceName = sourceName;
-    notifyListeners();
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_suwayomiSourceIdPrefKey, sourceId);
-      await prefs.setString(_suwayomiSourceNamePrefKey, sourceName);
-    } catch (_) {}
-    if (_activeServer == 'suwayomi') {
+    if (_suwayomiSourceId != sourceId) {
+      _suwayomiSourceId = sourceId;
+      _suwayomiSourceName = sourceName;
+      notifyListeners();
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_suwayomiSourceIdPrefKey, sourceId);
+        await prefs.setString(_suwayomiSourceNamePrefKey, sourceName);
+      } catch (_) {}
       await fetchHomeData();
     }
   }
@@ -154,10 +138,14 @@ class MangaProvider extends ChangeNotifier {
 
     if (result.success) {
       _suwayomiSources = result.sources;
-      // Jika belum ada sumber yang dipilih, default ke sumber pertama
-      if ((_suwayomiSourceId == null || _suwayomiSourceId!.isEmpty) && result.sources.isNotEmpty) {
-        _suwayomiSourceId = result.sources.first.id;
-        _suwayomiSourceName = result.sources.first.name;
+      // Filter out Local source jika ada sumber manga online
+      final availableSources = result.sources.where((s) => s.id != '0').toList();
+      final effectiveSources = availableSources.isNotEmpty ? availableSources : result.sources;
+
+      // Jika belum ada sumber yang dipilih, default ke sumber online pertama
+      if ((_suwayomiSourceId == null || _suwayomiSourceId!.isEmpty) && effectiveSources.isNotEmpty) {
+        _suwayomiSourceId = effectiveSources.first.id;
+        _suwayomiSourceName = effectiveSources.first.displayName;
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_suwayomiSourceIdPrefKey, _suwayomiSourceId!);
@@ -168,13 +156,13 @@ class MangaProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Mengubah status Safe Search (Filter Konten Dewasa)
-  Future<void> setSafeSearch(bool enabled) async {
-    _isSafeSearchEnabled = enabled;
+  /// Toggle Safe Search (Filter 18+)
+  Future<void> toggleSafeSearch() async {
+    _isSafeSearchEnabled = !_isSafeSearchEnabled;
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_safeSearchPrefKey, enabled);
+      await prefs.setBool(_safeSearchPrefKey, _isSafeSearchEnabled);
     } catch (_) {}
     await fetchHomeData();
   }
@@ -211,24 +199,14 @@ class MangaProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_activeServer == 'suwayomi') {
-        if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
-          _popularManga = await _suwayomiService.getPopularManga(
-            _suwayomiUrl,
-            _suwayomiSourceId!,
-            page: 1,
-          );
-        } else {
-          _popularManga = [];
-        }
-      } else {
-        final lang = _selectedLanguage == 'all' ? null : _selectedLanguage;
-        _popularManga = await _service.getPopularManga(
-          limit: 10,
-          language: lang,
-          comicType: _selectedComicType,
-          contentRatings: currentContentRatings,
+      if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
+        _popularManga = await _suwayomiService.getPopularManga(
+          _suwayomiUrl,
+          _suwayomiSourceId!,
+          page: 1,
         );
+      } else {
+        _popularManga = [];
       }
     } catch (e) {
       _errorMessage = e.toString();
@@ -244,24 +222,14 @@ class MangaProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_activeServer == 'suwayomi') {
-        if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
-          _latestManga = await _suwayomiService.getLatestUpdates(
-            _suwayomiUrl,
-            _suwayomiSourceId!,
-            page: 1,
-          );
-        } else {
-          _latestManga = [];
-        }
-      } else {
-        final lang = _selectedLanguage == 'all' ? null : _selectedLanguage;
-        _latestManga = await _service.getLatestUpdates(
-          limit: 20,
-          language: lang,
-          comicType: _selectedComicType,
-          contentRatings: currentContentRatings,
+      if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
+        _latestManga = await _suwayomiService.getLatestUpdates(
+          _suwayomiUrl,
+          _suwayomiSourceId!,
+          page: 1,
         );
+      } else {
+        _latestManga = [];
       }
     } catch (e) {
       _errorMessage = e.toString();
@@ -284,26 +252,15 @@ class MangaProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_activeServer == 'suwayomi') {
-        if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
-          _searchResults = await _suwayomiService.searchManga(
-            _suwayomiUrl,
-            _suwayomiSourceId!,
-            query,
-            page: 1,
-          );
-        } else {
-          _searchResults = [];
-        }
-      } else {
-        final lang = _selectedLanguage == 'all' ? null : _selectedLanguage;
-        _searchResults = await _service.searchManga(
+      if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
+        _searchResults = await _suwayomiService.searchManga(
+          _suwayomiUrl,
+          _suwayomiSourceId!,
           query,
-          limit: 30,
-          language: lang,
-          comicType: _selectedComicType,
-          contentRatings: currentContentRatings,
+          page: 1,
         );
+      } else {
+        _searchResults = [];
       }
     } catch (e) {
       _searchResults = [];
@@ -366,43 +323,21 @@ class MangaProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Eksekusi Pencarian Lanjutan Berdasarkan Filter Lengkap
+  /// Eksekusi Pencarian Lanjutan
   Future<void> executeAdvancedSearch(String query) async {
     _isAdvancedSearching = true;
     notifyListeners();
 
     try {
-      if (_activeServer == 'suwayomi') {
-        if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
-          _advancedSearchResults = await _suwayomiService.searchManga(
-            _suwayomiUrl,
-            _suwayomiSourceId!,
-            query,
-            page: 1,
-          );
-        } else {
-          _advancedSearchResults = [];
-        }
-      } else {
-        final lang = _advLanguage == 'all' ? null : _advLanguage;
-        List<String> ratingsToUse;
-        if (_isSafeSearchEnabled) {
-          ratingsToUse = ['safe', 'suggestive'];
-        } else {
-          ratingsToUse = _advSelectedRatings.isNotEmpty
-              ? _advSelectedRatings
-              : ['safe', 'suggestive', 'erotica', 'pornographic'];
-        }
-
-        _advancedSearchResults = await _service.searchManga(
+      if (_suwayomiSourceId != null && _suwayomiSourceId!.isNotEmpty) {
+        _advancedSearchResults = await _suwayomiService.searchManga(
+          _suwayomiUrl,
+          _suwayomiSourceId!,
           query,
-          limit: 40,
-          language: lang,
-          comicType: _advComicType,
-          status: _advStatus,
-          includedTags: _advSelectedGenreIds.isNotEmpty ? _advSelectedGenreIds : null,
-          contentRatings: ratingsToUse,
+          page: 1,
         );
+      } else {
+        _advancedSearchResults = [];
       }
     } catch (e) {
       _advancedSearchResults = [];

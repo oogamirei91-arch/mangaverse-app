@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/chapter_pages_model.dart';
-import '../services/mangadex_service.dart';
 import '../services/suwayomi_service.dart';
 
 enum ReaderMode {
@@ -10,7 +9,6 @@ enum ReaderMode {
 }
 
 class ReaderProvider extends ChangeNotifier {
-  final MangaDexService _service = MangaDexService();
   final SuwayomiService _suwayomiService = SuwayomiService();
 
   ChapterPagesModel? _pagesData;
@@ -21,8 +19,7 @@ class ReaderProvider extends ChangeNotifier {
   int _currentPage = 1;
   int _totalPages = 0;
   bool _showControls = true;
-  // Default diaktifkan (true) agar komik / manhwa dimuat 3x-5x lebih cepat
-  bool _isDataSaver = true;
+  bool _isDataSaver = false;
   ReaderMode _readerMode = ReaderMode.webtoon;
 
   ChapterPagesModel? get pagesData => _pagesData;
@@ -35,7 +32,7 @@ class ReaderProvider extends ChangeNotifier {
   bool get isDataSaver => _isDataSaver;
   ReaderMode get readerMode => _readerMode;
 
-  /// Memuat halaman-halaman dari sebuah chapter (MangaDex atau Suwayomi)
+  /// Memuat halaman-halaman dari sebuah chapter langsung dari Suwayomi
   Future<void> loadChapter(
     String chapterId, {
     String? mangaId,
@@ -48,12 +45,9 @@ class ReaderProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (serverType == 'suwayomi' && mangaId != null) {
-        final url = suwayomiUrl ?? 'http://10.0.2.2:4567';
-        _pagesData = await _suwayomiService.getChapterPages(url, mangaId, chapterId);
-      } else {
-        _pagesData = await _service.getChapterPages(chapterId);
-      }
+      final url = suwayomiUrl ?? 'http://172.16.2.102:4567';
+      final mId = mangaId ?? '1';
+      _pagesData = await _suwayomiService.getChapterPages(url, mId, chapterId);
 
       if (_pagesData != null) {
         _pageUrls = _pagesData!.getPageUrls(isDataSaver: _isDataSaver);
@@ -84,7 +78,6 @@ class ReaderProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Beralih antara mode cepat (Data Saver) dan kualitas asli (HQ)
   void toggleDataSaver() {
     _isDataSaver = !_isDataSaver;
     if (_pagesData != null) {

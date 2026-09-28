@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/manga_model.dart';
 import '../../providers/manga_provider.dart';
-import '../../services/mangadex_service.dart';
 import '../../services/suwayomi_service.dart';
 import '../../widgets/manga_card.dart';
 
@@ -23,15 +22,13 @@ class PopularListScreen extends StatefulWidget {
 }
 
 class _PopularListScreenState extends State<PopularListScreen> {
-  final MangaDexService _service = MangaDexService();
   final SuwayomiService _suwayomiService = SuwayomiService();
   final ScrollController _scrollController = ScrollController();
 
   List<MangaModel> _mangaList = [];
   bool _isLoading = false;
   bool _hasMore = true;
-  int _offset = 0;
-  static const int _limit = 24;
+  int _page = 1;
 
   @override
   void initState() {
@@ -56,7 +53,7 @@ class _PopularListScreenState extends State<PopularListScreen> {
     if (_isLoading) return;
 
     if (refresh) {
-      _offset = 0;
+      _page = 1;
       _hasMore = true;
       _mangaList.clear();
     }
@@ -65,32 +62,23 @@ class _PopularListScreenState extends State<PopularListScreen> {
 
     try {
       final mangaProvider = context.read<MangaProvider>();
-      List<MangaModel> newItems;
+      List<MangaModel> newItems = [];
 
-      if (mangaProvider.isSuwayomiActive && mangaProvider.suwayomiSourceId != null) {
-        final page = (_offset ~/ _limit) + 1;
+      if (mangaProvider.suwayomiSourceId != null) {
         newItems = await _suwayomiService.getPopularManga(
           mangaProvider.suwayomiUrl,
           mangaProvider.suwayomiSourceId!,
-          page: page,
-        );
-      } else {
-        final lang = widget.language == 'all' ? null : widget.language;
-        newItems = await _service.getPopularManga(
-          limit: _limit,
-          offset: _offset,
-          language: lang,
-          comicType: widget.comicType,
-          contentRatings: mangaProvider.currentContentRatings,
+          page: _page,
         );
       }
 
       setState(() {
-        if (newItems.length < _limit) {
+        if (newItems.isEmpty) {
           _hasMore = false;
+        } else {
+          _mangaList.addAll(newItems);
+          _page++;
         }
-        _mangaList.addAll(newItems);
-        _offset += newItems.length;
         _isLoading = false;
       });
     } catch (_) {
@@ -100,19 +88,7 @@ class _PopularListScreenState extends State<PopularListScreen> {
 
   String _getTitle() {
     final mangaProvider = context.read<MangaProvider>();
-    if (mangaProvider.isSuwayomiActive) {
-      return '🔥 Populer (${mangaProvider.suwayomiSourceName ?? 'Suwayomi'})';
-    }
-    switch (widget.comicType) {
-      case 'manhwa':
-        return '🔥 Manhwa Terpopuler';
-      case 'manga':
-        return '🔥 Manga Terpopuler';
-      case 'manhua':
-        return '🔥 Manhua Terpopuler';
-      default:
-        return '🔥 Komik Paling Populer';
-    }
+    return '🔥 Populer (${mangaProvider.suwayomiSourceName ?? 'Suwayomi'})';
   }
 
   @override
@@ -138,36 +114,49 @@ class _PopularListScreenState extends State<PopularListScreen> {
       body: RefreshIndicator(
         onRefresh: () => _fetchPopularManga(refresh: true),
         color: AppTheme.primaryColor,
-        backgroundColor: AppTheme.surfaceColor,
         child: _mangaList.isEmpty && _isLoading
             ? const Center(
                 child: CircularProgressIndicator(color: AppTheme.primaryColor),
               )
             : _mangaList.isEmpty
                 ? Center(
-                    child: Text(
-                      'Tidak ada komik populer ditemukan.',
-                      style: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.auto_stories_rounded, size: 54, color: Colors.white24),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Belum ada data komik populer.',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : GridView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.68,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.60,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
                     ),
                     itemCount: _mangaList.length + (_hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == _mangaList.length) {
                         return const Center(
                           child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppTheme.primaryColor,
+                            padding: EdgeInsets.all(16),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppTheme.primaryColor,
+                              ),
                             ),
                           ),
                         );

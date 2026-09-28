@@ -28,12 +28,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final mangaProvider = context.read<MangaProvider>();
-      final selectedLang = mangaProvider.selectedLanguage;
       context.read<ChapterProvider>().fetchChapters(
         widget.manga.id,
-        defaultLanguage: selectedLang,
-        contentRatings: mangaProvider.currentContentRatings,
-        serverType: widget.manga.serverType,
         suwayomiUrl: mangaProvider.suwayomiUrl,
       );
     });
@@ -355,21 +351,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                       ),
                     ],
                   ),
-                  // Language selector chips (Hanya untuk server MangaDex)
-                  if (widget.manga.serverType != 'suwayomi') ...[
-                    Row(
-                      children: [
-                        _buildChapterLangChip(context, chapterProvider, 'id', '🇮🇩 ID'),
-                        const SizedBox(width: 8),
-                        _buildChapterLangChip(context, chapterProvider, 'en', '🇬🇧 EN'),
-                        const SizedBox(width: 8),
-                        _buildChapterLangChip(context, chapterProvider, 'all', '🌐 Semua'),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                  ] else ...[
-                    const SizedBox(height: 6),
-                  ],
+                  const SizedBox(height: 8),
 
                   // List Chapter Items
                   if (chapterProvider.isLoading)
@@ -398,18 +380,14 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
-                              Icons.translate_rounded,
+                              Icons.menu_book_rounded,
                               size: 32,
                               color: AppTheme.primaryColor,
                             ),
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            chapterProvider.chapterLanguage == 'id'
-                                ? 'Chapter Bahasa Indonesia Belum Tersedia'
-                                : (chapterProvider.chapterLanguage == 'en'
-                                    ? 'Chapter Bahasa Inggris Belum Tersedia'
-                                    : 'Belum Ada Chapter Tersedia'),
+                            'Belum Ada Chapter Tersedia',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
@@ -419,65 +397,13 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            chapterProvider.chapterLanguage == 'id'
-                                ? 'Belum ada grup translasi yang mengunggah chapter Bahasa Indonesia untuk judul ini di server MangaDex. Silakan baca chapter versi Bahasa Inggris atau tampilkan semua bahasa.'
-                                : 'Tidak ditemukan chapter untuk bahasa yang dipilih pada komik ini.',
+                            'Tidak ditemukan chapter untuk komik ini dari server Suwayomi.',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               height: 1.5,
                               color: AppTheme.textSecondary,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 8,
-                            alignment: WrapAlignment.center,
-                            children: [
-                              if (chapterProvider.chapterLanguage != 'en')
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    chapterProvider.changeLanguage(
-                                      widget.manga.id,
-                                      'en',
-                                      contentRatings: context.read<MangaProvider>().currentContentRatings,
-                                    );
-                                  },
-                                  icon: const Icon(Icons.language_rounded, size: 16),
-                                  label: const Text('Baca Bahasa Inggris (EN)'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryColor,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                    textStyle: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              if (chapterProvider.chapterLanguage != 'all')
-                                OutlinedButton.icon(
-                                  onPressed: () {
-                                    chapterProvider.changeLanguage(
-                                      widget.manga.id,
-                                      'all',
-                                      contentRatings: context.read<MangaProvider>().currentContentRatings,
-                                    );
-                                  },
-                                  icon: const Icon(Icons.public_rounded, size: 16),
-                                  label: const Text('Tampilkan Semua Bahasa'),
-                                  style: OutlinedButton.styleFrom(
-                                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                    textStyle: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                            ],
                           ),
                         ],
                       ),
@@ -527,7 +453,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                               ),
                             ),
                             subtitle: Text(
-                              '${ch.translatedLanguage.toUpperCase()} • ${ch.scanlationGroup ?? 'MangaDex'}${isLastRead ? ' (Terakhir Dibaca)' : ''}',
+                              '${ch.translatedLanguage.toUpperCase()}${ch.scanlationGroup != null ? ' • ${ch.scanlationGroup}' : ''}${isLastRead ? ' (Terakhir Dibaca)' : ''}',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: AppTheme.textSecondary,

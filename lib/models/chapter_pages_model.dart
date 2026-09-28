@@ -1,40 +1,24 @@
 class ChapterPagesModel {
   final String baseUrl;
-  final String hash;
-  final List<String> data;
-  final List<String> dataSaver;
-  final bool isDirectUrls;
+  final List<String> pageUrls;
 
   ChapterPagesModel({
     required this.baseUrl,
-    required this.hash,
-    required this.data,
-    required this.dataSaver,
-    this.isDirectUrls = false,
+    required this.pageUrls,
   });
 
   /// Daftar URL gambar lengkap untuk dibaca di Reader
   List<String> getPageUrls({bool isDataSaver = false}) {
-    if (isDirectUrls) {
-      return data;
-    }
-    final list = isDataSaver ? dataSaver : data;
-    final qualityFolder = isDataSaver ? 'data-saver' : 'data';
-    return list.map((fileName) => '$baseUrl/$qualityFolder/$hash/$fileName').toList();
+    return pageUrls;
   }
 
-  factory ChapterPagesModel.fromJson(Map<String, dynamic> json) {
-    final baseUrl = json['baseUrl'] as String;
-    final chapter = json['chapter'] as Map<String, dynamic>;
-    final hash = chapter['hash'] as String;
-    final data = (chapter['data'] as List<dynamic>).map((e) => e.toString()).toList();
-    final dataSaver = (chapter['dataSaver'] as List<dynamic>).map((e) => e.toString()).toList();
-
+  factory ChapterPagesModel.fromUrls({
+    required String baseUrl,
+    required List<String> urls,
+  }) {
     return ChapterPagesModel(
       baseUrl: baseUrl,
-      hash: hash,
-      data: data,
-      dataSaver: dataSaver,
+      pageUrls: urls,
     );
   }
 }

@@ -11,7 +11,7 @@ class SuwayomiService {
   /// Membersihkan URL agar valid (menghapus trailing slash, memastikan http/https, membersihkan subpath)
   String cleanUrl(String rawUrl) {
     String trimmed = rawUrl.trim();
-    if (trimmed.isEmpty) return 'http://10.0.2.2:4567';
+    if (trimmed.isEmpty) return 'http://172.16.2.102:4567';
     if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
       trimmed = 'http://$trimmed';
     }
@@ -48,7 +48,7 @@ class SuwayomiService {
           return (
             success: false,
             sourceCount: 0,
-            message: 'Respons berupa halaman HTML, bukan data API. Pastikan URL server tepat (tanpa /api/v1).',
+            message: 'Respons berupa halaman HTML, bukan data API Suwayomi. Cukup masukkan alamat host:port tanpa subpath.',
             sources: <SuwayomiSourceModel>[],
           );
         }
@@ -104,7 +104,7 @@ class SuwayomiService {
   Future<List<SuwayomiSourceModel>> getSources(String serverUrl) async {
     final base = cleanUrl(serverUrl);
     final uri = Uri.parse('$base/api/v1/source/list');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 10));
+    final res = await _client.get(uri).timeout(const Duration(seconds: 15));
 
     if (res.statusCode == 200) {
       final List data = jsonDecode(res.body);
@@ -121,7 +121,7 @@ class SuwayomiService {
   }) async {
     final base = cleanUrl(serverUrl);
     final uri = Uri.parse('$base/api/v1/source/$sourceId/popular/$page');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
@@ -139,7 +139,7 @@ class SuwayomiService {
   }) async {
     final base = cleanUrl(serverUrl);
     final uri = Uri.parse('$base/api/v1/source/$sourceId/latest/$page');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
@@ -158,7 +158,7 @@ class SuwayomiService {
   }) async {
     final base = cleanUrl(serverUrl);
     final uri = Uri.parse('$base/api/v1/source/$sourceId/search/$page?query=${Uri.encodeComponent(query.trim())}');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
@@ -176,24 +176,7 @@ class SuwayomiService {
 
     if (res.statusCode == 200) {
       final item = jsonDecode(res.body) as Map<String, dynamic>;
-      final thumb = item['thumbnailUrl']?.toString();
-      final fullCover = thumb != null
-          ? (thumb.startsWith('http') ? thumb : '$base$thumb')
-          : null;
-
-      final genreList = item['genre'] as List<dynamic>? ?? [];
-      final tags = genreList.map((g) => g.toString()).toList();
-
-      return MangaModel(
-        id: mangaId,
-        title: item['title']?.toString() ?? 'Tanpa Judul',
-        description: item['description']?.toString(),
-        status: item['status']?.toString().toLowerCase() ?? 'ongoing',
-        tags: tags,
-        author: item['author']?.toString() ?? item['artist']?.toString(),
-        directCoverUrl: fullCover,
-        serverType: 'suwayomi',
-      );
+      return MangaModel.fromSuwayomi(item, base);
     }
     throw Exception('Gagal memuat detail komik dari Suwayomi (${res.statusCode})');
   }
@@ -202,29 +185,14 @@ class SuwayomiService {
   Future<List<ChapterModel>> getMangaChapters(String serverUrl, String mangaId) async {
     final base = cleanUrl(serverUrl);
     final uri = Uri.parse('$base/api/v1/manga/$mangaId/chapters');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
       final List data = json is List ? json : (json['chapters'] as List? ?? []);
 
       return data.map((item) {
-        final chId = (item['id'] ?? '').toString();
-        final chNum = (item['chapterNumber'] ?? '0').toString();
-        final chName = item['name']?.toString() ?? 'Chapter $chNum';
-        final scanlator = item['scanlator']?.toString();
-        final pageCount = (item['pageCount'] as num?)?.toInt() ?? 0;
-
-        return ChapterModel(
-          id: chId,
-          chapter: chNum,
-          title: chName,
-          translatedLanguage: item['lang']?.toString() ?? 'all',
-          pagesCount: pageCount,
-          scanlationGroup: scanlator,
-          mangaId: mangaId,
-          serverType: 'suwayomi',
-        );
+        return ChapterModel.fromSuwayomi(item as Map<String, dynamic>, mangaId: mangaId);
       }).toList();
     }
     throw Exception('Gagal memuat chapter Suwayomi (${res.statusCode})');
@@ -238,15 +206,14 @@ class SuwayomiService {
   ) async {
     final base = cleanUrl(serverUrl);
     
-    // Pertama, periksa info chapter untuk mendapatkan pageCount
+    // 1. Dapatkan info chapter untuk mengetahui total halaman
     final uri = Uri.parse('$base/api/v1/manga/$mangaId/chapter/$chapterId');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode == 200) {
       final item = jsonDecode(res.body) as Map<String, dynamic>;
       final int pageCount = (item['pageCount'] as num?)?.toInt() ?? 0;
 
-      // Jika pageCount tersedia, buat daftar URL halaman Suwayomi
       if (pageCount > 0) {
         final List<String> pageUrls = List.generate(
           pageCount,
@@ -255,17 +222,14 @@ class SuwayomiService {
 
         return ChapterPagesModel(
           baseUrl: base,
-          hash: '',
-          data: pageUrls,
-          dataSaver: pageUrls,
-          isDirectUrls: true,
+          pageUrls: pageUrls,
         );
       }
     }
 
-    // Fallback alternatif ke endpoint pages
+    // 2. Fallback alternatif ke endpoint pages jika ada
     final pagesUri = Uri.parse('$base/api/v1/manga/$mangaId/chapter/$chapterId/pages');
-    final pagesRes = await _client.get(pagesUri).timeout(const Duration(seconds: 10));
+    final pagesRes = await _client.get(pagesUri).timeout(const Duration(seconds: 15));
 
     if (pagesRes.statusCode == 200) {
       final pagesJson = jsonDecode(pagesRes.body);
@@ -277,10 +241,7 @@ class SuwayomiService {
 
       return ChapterPagesModel(
         baseUrl: base,
-        hash: '',
-        data: pageUrls,
-        dataSaver: pageUrls,
-        isDirectUrls: true,
+        pageUrls: pageUrls,
       );
     }
 
@@ -289,21 +250,7 @@ class SuwayomiService {
 
   List<MangaModel> _parseMangaList(List data, String base, String sourceId) {
     return data.map((item) {
-      final id = (item['id'] ?? item['url'] ?? '').toString();
-      final title = (item['title'] ?? 'Tanpa Judul').toString();
-      final thumb = item['thumbnailUrl']?.toString();
-      final fullCover = thumb != null
-          ? (thumb.startsWith('http') ? thumb : '$base$thumb')
-          : null;
-
-      return MangaModel(
-        id: id,
-        title: title,
-        status: 'ongoing',
-        directCoverUrl: fullCover,
-        serverType: 'suwayomi',
-        sourceId: sourceId,
-      );
+      return MangaModel.fromSuwayomi(item as Map<String, dynamic>, base, defaultSourceId: sourceId);
     }).toList();
   }
 }

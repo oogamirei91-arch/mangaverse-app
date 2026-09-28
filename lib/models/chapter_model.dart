@@ -8,52 +8,59 @@ class ChapterModel {
   final String? publishAt;
   final String? scanlationGroup;
   final String? mangaId;
-  final String serverType; // 'mangadex' | 'suwayomi'
+  final int? index;
+  final bool isRead;
+  final bool isBookmarked;
 
   ChapterModel({
     required this.id,
     required this.chapter,
     this.title,
     this.volume,
-    required this.translatedLanguage,
-    required this.pagesCount,
+    this.translatedLanguage = 'id',
+    this.pagesCount = 0,
     this.publishAt,
     this.scanlationGroup,
     this.mangaId,
-    this.serverType = 'mangadex',
+    this.index,
+    this.isRead = false,
+    this.isBookmarked = false,
   });
 
   String get displayName {
-    String name = 'Chapter $chapter';
     if (title != null && title!.trim().isNotEmpty) {
-      name += ' - $title';
+      if (title!.toLowerCase().startsWith('chapter') || title!.toLowerCase().startsWith('ch.')) {
+        return title!;
+      }
+      return 'Ch. $chapter - $title';
     }
-    return name;
+    return 'Chapter $chapter';
+  }
+
+  factory ChapterModel.fromSuwayomi(Map<String, dynamic> json, {String? mangaId}) {
+    final chId = (json['id'] ?? '').toString();
+    final chNum = (json['chapterNumber'] ?? '0').toString();
+    final chName = json['name']?.toString() ?? 'Chapter $chNum';
+    final scanlator = json['scanlator']?.toString();
+    final pageCount = (json['pageCount'] as num?)?.toInt() ?? 0;
+    final uploadDate = json['uploadDate'];
+
+    return ChapterModel(
+      id: chId,
+      chapter: chNum,
+      title: chName,
+      translatedLanguage: json['lang']?.toString() ?? 'all',
+      pagesCount: pageCount > 0 ? pageCount : 0,
+      publishAt: uploadDate != null ? uploadDate.toString() : null,
+      scanlationGroup: scanlator,
+      mangaId: mangaId ?? (json['mangaId']?.toString()),
+      index: (json['index'] as num?)?.toInt(),
+      isRead: json['read'] == true,
+      isBookmarked: json['bookmarked'] == true,
+    );
   }
 
   factory ChapterModel.fromJson(Map<String, dynamic> json) {
-    final attributes = json['attributes'] as Map<String, dynamic>? ?? {};
-
-    String? groupName;
-    final relationships = json['relationships'] as List<dynamic>? ?? [];
-    for (var rel in relationships) {
-      if (rel['type'] == 'scanlation_group') {
-        final relAttr = rel['attributes'] as Map<String, dynamic>?;
-        if (relAttr != null && relAttr.containsKey('name')) {
-          groupName = relAttr['name']?.toString();
-        }
-      }
-    }
-
-    return ChapterModel(
-      id: json['id'] as String,
-      chapter: attributes['chapter']?.toString() ?? '0',
-      title: attributes['title']?.toString(),
-      volume: attributes['volume']?.toString(),
-      translatedLanguage: attributes['translatedLanguage']?.toString() ?? 'id',
-      pagesCount: (attributes['pages'] as num?)?.toInt() ?? 0,
-      publishAt: attributes['publishAt']?.toString(),
-      scanlationGroup: groupName,
-    );
+    return ChapterModel.fromSuwayomi(json);
   }
 }

@@ -16,27 +16,24 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _showFilters = true;
 
-  // Daftar genre lengkap beserta UUID resmi MangaDex
+  // Daftar genre populer
   static const Map<String, String> _popularGenres = {
-    'Action': '391e0439-e38d-4e18-800e-6213080f3385',
-    'Adventure': '87cc87cd-a395-47af-b27a-93258283bbc6',
-    'Comedy': '4d32cc48-9f00-4cca-9b5a-a839f0764984',
-    'Drama': 'b9af3a63-f058-46de-a9a0-e0c13906197a',
-    'Fantasy': 'cdc58593-ada3-4f6c-8e53-8d77757e1017',
-    'Horror': 'cdad7e68-ccd9-4093-967a-97122a822b6e',
-    'Isekai': 'ace04997-f6bd-4329-8b02-a5c04fa8218b',
-    'Mystery': 'ee968100-4191-4968-93d3-f82d72be7e46',
-    'Psychological': '3b60175c-a2d4-4660-bb58-f40a16373b84',
-    'Romance': '423e2eae-a7a2-4a8b-ac03-a8351462d71d',
-    'Sci-Fi': '256c8bd9-4904-432d-8bbf-d8a4096e0729',
-    'Slice of Life': 'e5301a23-ebd9-49dd-a0cb-2add944c7fe9',
-    'Supernatural': 'eabc5b4c-6aff-42f3-b657-3e190adc484b',
-    'Sports': '69964a64-2f90-4d33-beeb-f3ed2f2050c9',
-    'Ecchi': '97893a4c-12af-4dac-b6be-0dffb3720f22',
-    'Smut': 'fac73735-a1b4-4b47-a71d-f89aa7741d0b',
-    'Harem': 'aafb99c1-7f60-43fa-b75f-fc9502ce29c7',
-    'Gore': 'b29d6a3d-1569-4e7a-8ac5-983ac273e766',
-    'Doujinshi': 'b13b2a48-c720-44a9-9c77-39c9979373fb',
+    'Action': 'Action',
+    'Adventure': 'Adventure',
+    'Comedy': 'Comedy',
+    'Drama': 'Drama',
+    'Fantasy': 'Fantasy',
+    'Horror': 'Horror',
+    'Isekai': 'Isekai',
+    'Mystery': 'Mystery',
+    'Psychological': 'Psychological',
+    'Romance': 'Romance',
+    'Sci-Fi': 'Sci-Fi',
+    'Slice of Life': 'Slice of Life',
+    'Supernatural': 'Supernatural',
+    'Sports': 'Sports',
+    'Ecchi': 'Ecchi',
+    'Harem': 'Harem',
   };
 
   @override
