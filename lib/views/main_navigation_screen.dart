@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_theme.dart';
 import 'home/home_screen.dart';
+import 'search/advanced_search_screen.dart';
 import 'library/library_screen.dart';
+import 'settings/settings_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -16,7 +18,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _pages = const [
     HomeScreen(),
+    AdvancedSearchScreen(),
     LibraryScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -44,11 +48,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           unselectedItemColor: AppTheme.textSecondary,
           selectedLabelStyle: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w700,
-            fontSize: 12,
+            fontSize: 11,
           ),
           unselectedLabelStyle: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w500,
-            fontSize: 12,
+            fontSize: 11,
           ),
           type: BottomNavigationBarType.fixed,
           items: const [
@@ -58,9 +62,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               label: 'Katalog',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.search_outlined),
+              activeIcon: Icon(Icons.search_rounded),
+              label: 'Cari & Filter',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.bookmarks_outlined),
               activeIcon: Icon(Icons.bookmarks_rounded),
-              label: 'Koleksi Saya',
+              label: 'Koleksi',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings_rounded),
+              label: 'Pengaturan',
             ),
           ],
         ),

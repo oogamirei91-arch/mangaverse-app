@@ -34,13 +34,14 @@ class MangaDexService {
     int offset = 0,
     String? language = 'id',
     String? comicType = 'all',
+    List<String>? contentRatings,
   }) async {
     final Map<String, dynamic> queryParams = {
       'limit': limit.toString(),
       'offset': offset.toString(),
       'order[followedCount]': 'desc',
       'includes[]': ['cover_art', 'author'],
-      'contentRating[]': ['safe', 'suggestive'],
+      'contentRating[]': contentRatings ?? ['safe', 'suggestive'],
     };
 
     if (language != null && language.isNotEmpty && language != 'all') {
@@ -67,13 +68,14 @@ class MangaDexService {
     int offset = 0,
     String? language = 'id',
     String? comicType = 'all',
+    List<String>? contentRatings,
   }) async {
     final Map<String, dynamic> queryParams = {
       'limit': limit.toString(),
       'offset': offset.toString(),
       'order[latestUploadedChapter]': 'desc',
       'includes[]': ['cover_art', 'author'],
-      'contentRating[]': ['safe', 'suggestive'],
+      'contentRating[]': contentRatings ?? ['safe', 'suggestive'],
     };
 
     if (language != null && language.isNotEmpty && language != 'all') {
@@ -94,27 +96,39 @@ class MangaDexService {
     }
   }
 
-  /// Mencari Komik berdasarkan Keyword, Tipe & Bahasa
+  /// Pencarian Lanjutan: Keyword, Tipe, Bahasa, Status Rilis, dan Genre
   Future<List<MangaModel>> searchManga(
     String query, {
     int limit = 25,
     int offset = 0,
     String? language,
     String? comicType = 'all',
+    String? status = 'all',
+    List<String>? includedTags,
+    List<String>? contentRatings,
   }) async {
-    if (query.trim().isEmpty) return [];
-
     final Map<String, dynamic> queryParams = {
-      'title': query.trim(),
       'limit': limit.toString(),
       'offset': offset.toString(),
       'order[relevance]': 'desc',
       'includes[]': ['cover_art', 'author'],
-      'contentRating[]': ['safe', 'suggestive'],
+      'contentRating[]': contentRatings ?? ['safe', 'suggestive'],
     };
+
+    if (query.trim().isNotEmpty) {
+      queryParams['title'] = query.trim();
+    }
 
     if (language != null && language.isNotEmpty && language != 'all') {
       queryParams['availableTranslatedLanguage[]'] = language;
+    }
+
+    if (status != null && status.isNotEmpty && status != 'all') {
+      queryParams['status[]'] = status.toLowerCase();
+    }
+
+    if (includedTags != null && includedTags.isNotEmpty) {
+      queryParams['includedTags[]'] = includedTags;
     }
 
     _applyComicTypeFilter(queryParams, comicType);
@@ -150,13 +164,14 @@ class MangaDexService {
     String language = 'id',
     int limit = 100,
     int offset = 0,
+    List<String>? contentRatings,
   }) async {
     final Map<String, dynamic> queryParams = {
       'limit': limit.toString(),
       'offset': offset.toString(),
       'order[chapter]': 'asc',
       'includes[]': ['scanlation_group'],
-      'contentRating[]': ['safe', 'suggestive'],
+      'contentRating[]': contentRatings ?? ['safe', 'suggestive'],
     };
 
     if (language.isNotEmpty && language != 'all') {

@@ -25,7 +25,7 @@ class MangaApp extends StatelessWidget {
           create: (_) => AuthProvider()..initializeAuth(),
         ),
         ChangeNotifierProvider(
-          create: (_) => MangaProvider(),
+          create: (_) => MangaProvider()..initPreferences(),
         ),
         ChangeNotifierProvider(
           create: (_) => ChapterProvider(),
