@@ -1,4 +1,4 @@
-name: manga_app
+name: kuro_reader
 description: "KuroReader - A modern Manga, Manhwa & Comic Reader Flutter Application"
 publish_to: "none"
 version: 1.0.0+1
@@ -34,6 +34,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_logo.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0F1015"
+  adaptive_icon_foreground: "assets/images/app_logo.png"
 
 flutter:
   uses-material-design: true

@@ -31,23 +31,29 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # 4. Generate folder Android otomatis jika belum ada di repository
+      # 4. Generate folder Android otomatis & pastikan nama aplikasi adalah "KuroReader"
       - name: Generate Android Platform Files (If Missing)
         run: |
           if [ ! -d "android" ]; then
             echo "Folder android belum ada, men-generate struktur platform Android..."
-            flutter create . --platforms=android --org=com.kuroreader.app
+            flutter create . --platforms=android --org=com.kuroreader.app --project-name=kuro_reader
           fi
+          # Setel nama aplikasi di HP agar tampil sebagai KuroReader
+          sed -i 's/android:label="[^"]*"/android:label="KuroReader"/g' android/app/src/main/AndroidManifest.xml
 
       # 5. Unduh dependensi aplikasi (pub get)
       - name: Install Dependencies
         run: flutter pub get
 
-      # 6. Kompilasi APK mode Release
+      # 6. Generate Ikon Launcher Resmi KuroReader (Konsep 1)
+      - name: Generate App Launcher Icons
+        run: dart run flutter_launcher_icons
+
+      # 7. Kompilasi APK mode Release
       - name: Build Release APK
         run: flutter build apk --release
 
-      # 7. Unggah file APK ke tab Artifacts GitHub agar bisa langsung di-download
+      # 8. Unggah file APK ke tab Artifacts GitHub agar bisa langsung di-download
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
