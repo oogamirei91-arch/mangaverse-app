@@ -55,36 +55,41 @@ class LoginScreen extends StatelessWidget {
                   // Header / Hero Branding
                   Column(
                     children: [
-                      // App Icon Badge
+                      // App Icon Badge dengan Logo Konsep 1 (KuroReader)
                       Container(
-                        width: 90,
-                        height: 90,
+                        width: 96,
+                        height: 96,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
                           borderRadius: BorderRadius.circular(26),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.4),
-                              blurRadius: 24,
+                              color: AppTheme.primaryColor.withOpacity(0.45),
+                              blurRadius: 26,
                               offset: const Offset(0, 10),
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.auto_stories_rounded,
-                          size: 48,
-                          color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(26),
+                          child: Image.asset(
+                            'assets/images/app_logo.jpg',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              color: AppTheme.surfaceColor,
+                              child: const Icon(
+                                Icons.auto_stories_rounded,
+                                size: 48,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // App Title
                       Text(
-                        'MangaVerse',
+                        'KuroReader',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
@@ -252,7 +257,7 @@ class LoginScreen extends StatelessWidget {
 
                       // Terms & Disclaimer
                       Text(
-                        'Dengan masuk, Anda menyetujui Ketentuan Layanan\ndan Kebijakan Privasi MangaVerse.',
+                        'Dengan masuk, Anda menyetujui Ketentuan Layanan\ndan Kebijakan Privasi KuroReader.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,

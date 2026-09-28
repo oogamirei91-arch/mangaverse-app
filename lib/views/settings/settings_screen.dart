@@ -74,7 +74,7 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          auth.currentUser?.email ?? 'tamu@mangaverse.local',
+                          auth.currentUser?.email ?? 'tamu@kuroreader.local',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: AppTheme.textSecondary,

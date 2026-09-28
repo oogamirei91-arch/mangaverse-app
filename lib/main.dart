@@ -38,7 +38,7 @@ class MangaApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'MangaVerse',
+        title: 'KuroReader',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: const AuthGate(),
@@ -67,7 +67,7 @@ class AuthGate extends StatelessWidget {
               ),
               SizedBox(height: 16),
               Text(
-                'Memuat MangaVerse...',
+                'Memuat KuroReader...',
                 style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
             ],
