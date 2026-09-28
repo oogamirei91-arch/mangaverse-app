@@ -361,6 +361,69 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         child: CircularProgressIndicator(color: AppTheme.primaryColor),
                       ),
                     )
+                  else if (chapterProvider.errorMessage != null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withOpacity(0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.error_outline_rounded,
+                              size: 32,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Gagal Memuat Daftar Chapter',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            chapterProvider.errorMessage!.replaceFirst('Exception: ', ''),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              height: 1.5,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final mangaProvider = context.read<MangaProvider>();
+                              chapterProvider.fetchChapters(
+                                widget.manga.id,
+                                suwayomiUrl: mangaProvider.suwayomiUrl,
+                              );
+                            },
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: const Text('Coba Lagi'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryColor,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
                   else if (chapterProvider.chapters.isEmpty)
                     Container(
                       width: double.infinity,

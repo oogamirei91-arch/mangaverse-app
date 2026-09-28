@@ -114,7 +114,11 @@ class SuwayomiService {
     final res = await _client.get(uri).timeout(const Duration(seconds: 15));
 
     if (res.statusCode == 200) {
-      final List data = jsonDecode(res.body);
+      final bodyTrimmed = res.body.trim();
+      if (bodyTrimmed.startsWith('<') || !bodyTrimmed.startsWith('[')) {
+        throw Exception('Server mengembalikan respons HTML, bukan data ekstensi.');
+      }
+      final List data = jsonDecode(bodyTrimmed);
       return data
           .map((item) => SuwayomiSourceModel.fromJson(item))
           .where((s) {
@@ -138,7 +142,11 @@ class SuwayomiService {
     final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode == 200) {
-      final json = jsonDecode(res.body);
+      final bodyTrimmed = res.body.trim();
+      if (bodyTrimmed.startsWith('<')) {
+        throw Exception('Server mengembalikan respons web HTML, bukan data komik.');
+      }
+      final json = jsonDecode(bodyTrimmed);
       final List data = json is List ? json : (json['mangaList'] as List? ?? []);
       return _parseMangaList(data, base, sourceId);
     }
@@ -156,7 +164,11 @@ class SuwayomiService {
     final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode == 200) {
-      final json = jsonDecode(res.body);
+      final bodyTrimmed = res.body.trim();
+      if (bodyTrimmed.startsWith('<')) {
+        throw Exception('Server mengembalikan respons web HTML, bukan data komik.');
+      }
+      final json = jsonDecode(bodyTrimmed);
       final List data = json is List ? json : (json['mangaList'] as List? ?? []);
       return _parseMangaList(data, base, sourceId);
     }
@@ -175,7 +187,11 @@ class SuwayomiService {
     final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode == 200) {
-      final json = jsonDecode(res.body);
+      final bodyTrimmed = res.body.trim();
+      if (bodyTrimmed.startsWith('<')) {
+        throw Exception('Server mengembalikan respons web HTML, bukan data pencarian.');
+      }
+      final json = jsonDecode(bodyTrimmed);
       final List data = json is List ? json : (json['mangaList'] as List? ?? []);
       return _parseMangaList(data, base, sourceId);
     }
@@ -189,7 +205,11 @@ class SuwayomiService {
     final res = await _client.get(uri).timeout(const Duration(seconds: 15));
 
     if (res.statusCode == 200) {
-      final item = jsonDecode(res.body) as Map<String, dynamic>;
+      final bodyTrimmed = res.body.trim();
+      if (bodyTrimmed.startsWith('<')) {
+        throw Exception('Server mengembalikan respons web HTML, bukan data komik.');
+      }
+      final item = jsonDecode(bodyTrimmed) as Map<String, dynamic>;
       return MangaModel.fromSuwayomi(item, base);
     }
     throw Exception('Gagal memuat detail komik dari Suwayomi (${res.statusCode})');
@@ -199,10 +219,14 @@ class SuwayomiService {
   Future<List<ChapterModel>> getMangaChapters(String serverUrl, String mangaId) async {
     final base = cleanUrl(serverUrl);
     final uri = Uri.parse('$base/api/v1/manga/$mangaId/chapters');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
+    final res = await _client.get(uri).timeout(const Duration(seconds: 25));
 
     if (res.statusCode == 200) {
-      final json = jsonDecode(res.body);
+      final bodyTrimmed = res.body.trim();
+      if (bodyTrimmed.startsWith('<')) {
+        throw Exception('Server mengembalikan respons web HTML, bukan data chapter.');
+      }
+      final json = jsonDecode(bodyTrimmed);
       final List data = json is List ? json : (json['chapters'] as List? ?? []);
 
       return data.map((item) {
@@ -212,54 +236,79 @@ class SuwayomiService {
     throw Exception('Gagal memuat chapter Suwayomi (${res.statusCode})');
   }
 
-  /// Mengambil URL gambar halaman dari chapter di Suwayomi
+  /// Mengambil URL gambar halaman dari chapter di Suwayomi dengan auto-retry
   Future<ChapterPagesModel> getChapterPages(
     String serverUrl,
     String mangaId,
     String chapterId,
   ) async {
     final base = cleanUrl(serverUrl);
-    
-    // 1. Dapatkan info chapter untuk mengetahui total halaman
     final uri = Uri.parse('$base/api/v1/manga/$mangaId/chapter/$chapterId');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
 
-    if (res.statusCode == 200) {
-      final item = jsonDecode(res.body) as Map<String, dynamic>;
-      final int pageCount = (item['pageCount'] as num?)?.toInt() ?? 0;
+    int attempts = 0;
+    const maxAttempts = 2;
+    String lastError = '';
 
-      if (pageCount > 0) {
-        final List<String> pageUrls = List.generate(
-          pageCount,
-          (index) => '$base/api/v1/manga/$mangaId/chapter/$chapterId/page/$index',
-        );
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        final res = await _client.get(uri).timeout(const Duration(seconds: 25));
 
-        return ChapterPagesModel(
-          baseUrl: base,
-          pageUrls: pageUrls,
-        );
+        if (res.statusCode == 200) {
+          final bodyTrimmed = res.body.trim();
+          // Cegah parsing FormatException jika server mengembalikan fallback HTML SPA WebUI
+          if (bodyTrimmed.startsWith('<') || (!bodyTrimmed.startsWith('{') && !bodyTrimmed.startsWith('['))) {
+            throw Exception('Situs sumber mengembalikan halaman web HTML (mungkin terblokir Cloudflare atau proteksi ISP).');
+          }
+
+          final item = jsonDecode(bodyTrimmed) as Map<String, dynamic>;
+          final int pageCount = (item['pageCount'] as num?)?.toInt() ?? 0;
+
+          if (pageCount > 0) {
+            final List<String> pageUrls = List.generate(
+              pageCount,
+              (index) => '$base/api/v1/manga/$mangaId/chapter/$chapterId/page/$index',
+            );
+
+            return ChapterPagesModel(
+              baseUrl: base,
+              pageUrls: pageUrls,
+            );
+          } else if (pageCount == -1 || pageCount == 0) {
+            // Suwayomi mungkin sedang onlineFetch ke website sumber, beri waktu sejenak lalu coba lagi
+            if (attempts < maxAttempts) {
+              await Future.delayed(const Duration(milliseconds: 1500));
+              continue;
+            }
+            throw Exception('Halaman chapter belum tersedia dari situs sumber (pageCount = 0).');
+          }
+        } else if (res.statusCode == 404) {
+          throw Exception('Chapter tidak ditemukan di situs aslinya (404 Not Found - tautan mati atau telah dihapus).');
+        } else if (res.statusCode == 500) {
+          final body = res.body.trim();
+          if (body.contains('No such host') || body.contains('UnknownHostException')) {
+            throw Exception('Domain situs komik ini tidak dapat dijangkau (domain web aslinya mungkin telah berganti atau terblokir DNS).');
+          } else if (body.contains('Cloudflare') || body.contains('403') || body.contains('Turnstile')) {
+            throw Exception('Situs sumber komik dilindungi Cloudflare / Captcha sehingga chapter gagal dimuat.');
+          }
+          lastError = 'Situs sumber komik merespons error (500).';
+        } else {
+          lastError = 'Server Suwayomi merespons kode: ${res.statusCode}.';
+        }
+      } catch (e) {
+        lastError = e.toString().replaceFirst('Exception: ', '');
+        if (attempts < maxAttempts) {
+          await Future.delayed(const Duration(milliseconds: 1500));
+          continue;
+        }
       }
     }
 
-    // 2. Fallback alternatif ke endpoint pages jika ada
-    final pagesUri = Uri.parse('$base/api/v1/manga/$mangaId/chapter/$chapterId/pages');
-    final pagesRes = await _client.get(pagesUri).timeout(const Duration(seconds: 15));
-
-    if (pagesRes.statusCode == 200) {
-      final pagesJson = jsonDecode(pagesRes.body);
-      final List pagesList = pagesJson is List ? pagesJson : [];
-      final List<String> pageUrls = pagesList.map((p) {
-        final str = p.toString();
-        return str.startsWith('http') ? str : '$base$str';
-      }).toList();
-
-      return ChapterPagesModel(
-        baseUrl: base,
-        pageUrls: pageUrls,
-      );
-    }
-
-    throw Exception('Gagal memuat halaman chapter Suwayomi');
+    throw Exception(
+      lastError.isNotEmpty
+          ? lastError
+          : 'Gagal memuat halaman chapter. Silakan coba chapter lain atau gunakan sumber alternatif.',
+    );
   }
 
   List<MangaModel> _parseMangaList(List data, String base, String sourceId) {

@@ -54,7 +54,8 @@ class ReaderProvider extends ChangeNotifier {
         _totalPages = _pageUrls.length;
       }
     } catch (e) {
-      _errorMessage = 'Gagal memuat halaman chapter: ${e.toString()}';
+      final msg = e.toString().replaceFirst('Exception: ', '').trim();
+      _errorMessage = msg.isNotEmpty ? msg : 'Gagal memuat halaman chapter.';
     } finally {
       _isLoading = false;
       notifyListeners();
