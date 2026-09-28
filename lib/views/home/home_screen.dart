@@ -383,16 +383,49 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                GestureDetector(
-                  onTap: () => showServerSourcePickerSheet(context),
-                  child: Text(
-                    'Lihat Semua',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primaryColor,
+                Row(
+                  children: [
+                    if (provider.isSafeSearchEnabled) ...[
+                      GestureDetector(
+                        onTap: () => showServerSourcePickerSheet(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF9F1C).withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFFF9F1C).withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.lock_rounded, size: 10, color: Color(0xFFFFD166)),
+                              const SizedBox(width: 3),
+                              Text(
+                                'Safe Search: ON',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFFFFD166),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    GestureDetector(
+                      onTap: () => showServerSourcePickerSheet(context),
+                      child: Text(
+                        'Lihat Semua',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -466,19 +499,25 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                               decoration: BoxDecoration(
-                                color: langUpper == 'ID'
-                                    ? Colors.redAccent.withOpacity(0.25)
-                                    : (langUpper == 'EN' ? Colors.blueAccent.withOpacity(0.25) : Colors.purpleAccent.withOpacity(0.25)),
+                                color: source.isCosplayOrGallery
+                                    ? const Color(0xFF7209B7).withOpacity(0.3)
+                                    : (langUpper == 'ID'
+                                        ? Colors.redAccent.withOpacity(0.25)
+                                        : (langUpper == 'EN' ? Colors.blueAccent.withOpacity(0.25) : Colors.purpleAccent.withOpacity(0.25))),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                langUpper,
+                                source.isCosplayOrGallery
+                                    ? (source.name.toLowerCase().contains('cosplay') ? '🎬 COSPLAY' : '📸 FOTO')
+                                    : langUpper,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 8.5,
                                   fontWeight: FontWeight.w800,
-                                  color: langUpper == 'ID'
-                                      ? Colors.redAccent
-                                      : (langUpper == 'EN' ? Colors.lightBlueAccent : Colors.purpleAccent),
+                                  color: source.isCosplayOrGallery
+                                      ? const Color(0xFFC77DFF)
+                                      : (langUpper == 'ID'
+                                          ? Colors.redAccent
+                                          : (langUpper == 'EN' ? Colors.lightBlueAccent : Colors.purpleAccent)),
                                 ),
                               ),
                             ),

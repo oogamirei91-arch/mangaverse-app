@@ -43,14 +43,12 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
 
     // Filter daftar sumber berdasarkan pencarian dan kategori tab
     final query = _searchController.text.trim().toLowerCase();
-    final filteredSources = (isSafeSearch ? activeSources : allSources).where((s) {
+    final sourceListToUse = isSafeSearch ? activeSources : allSources;
+    final filteredSources = sourceListToUse.where((s) {
       // Filter kategori
       if (_selectedCategory == 'id' && s.lang.toLowerCase() != 'id') return false;
       if (_selectedCategory == 'en' && s.lang.toLowerCase() != 'en' && s.lang.toLowerCase() != 'eng') return false;
-      if (_selectedCategory == 'cosplay' &&
-          s.lang.toLowerCase() != 'all' &&
-          !s.name.toLowerCase().contains('cosplay') &&
-          !s.name.toLowerCase().contains('photo')) {
+      if (_selectedCategory == 'cosplay' && !s.isCosplayOrGallery) {
         return false;
       }
 
@@ -63,6 +61,9 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
       }
       return true;
     }).toList();
+
+    final isCosplayLocked = isSafeSearch && _selectedCategory == 'cosplay';
+    final totalCosplayCount = allSources.where((s) => s.isCosplayOrGallery).length;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -175,13 +176,18 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildCategoryChip('all', '🌐 Semua (${allSources.length})'),
+                _buildCategoryChip('all', '🌐 Semua (${isSafeSearch ? activeSources.length : allSources.length})'),
                 const SizedBox(width: 8),
                 _buildCategoryChip('id', '🇮🇩 Indonesia'),
                 const SizedBox(width: 8),
                 _buildCategoryChip('en', '🇬🇧 English'),
                 const SizedBox(width: 8),
-                _buildCategoryChip('cosplay', '📸 Cosplay & Galeri'),
+                _buildCategoryChip(
+                  'cosplay',
+                  isSafeSearch
+                      ? '🔒 Cosplay & Galeri'
+                      : '📸 Cosplay & Galeri ($totalCosplayCount)',
+                ),
               ],
             ),
           ),
@@ -202,7 +208,7 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Safe Search aktif. Sumber Cosplay & 18+ disembunyikan.',
+                      'Safe Search AKTIF: Tab Cosplay, Galeri & sumber 18+ dikunci.',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         color: const Color(0xFFFFD166),
@@ -210,17 +216,14 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      mangaProvider.setSafeSearch(false);
-                      setState(() {});
-                    },
+                    onPressed: () => _showUnlockDialog(context, mangaProvider),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     child: Text(
-                      'Tampilkan',
+                      'Buka Kunci',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -253,31 +256,85 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(0.08)),
               ),
-            child: filteredSources.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.search_off_rounded, size: 36, color: Colors.white30),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Sumber tidak ditemukan',
-                          style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 13),
+              child: isCosplayLocked
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.lock_rounded, color: Colors.redAccent, size: 40),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'Tab Cosplay & Galeri Terkunci',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tab Cosplay & Galeri (CosplayTele, Cossora Stream Video, Photos18, dll.) mengandung konten khusus dewasa (18+).\n\nSemua kategori Cosplay & Galeri baru terbuka saat Safe Search dimatikan (OFF).',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: Colors.white70,
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            ElevatedButton.icon(
+                              onPressed: () => _showUnlockDialog(context, mangaProvider),
+                              icon: const Icon(Icons.lock_open_rounded, size: 18),
+                              label: const Text('Buka Kunci (Matikan Safe Search)'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE63946),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ],
                         ),
-                        if (isSafeSearch) ...[
-                          const SizedBox(height: 6),
-                          TextButton(
-                            onPressed: () {
-                              mangaProvider.setSafeSearch(false);
-                              setState(() {});
-                            },
-                            child: const Text('Matikan Safe Search untuk melihat Cosplay/18+'),
+                      ),
+                    )
+                  : filteredSources.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.search_off_rounded, size: 36, color: Colors.white30),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Sumber tidak ditemukan',
+                                style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 13),
+                              ),
+                              if (isSafeSearch) ...[
+                                const SizedBox(height: 8),
+                                ElevatedButton.icon(
+                                  onPressed: () => _showUnlockDialog(context, mangaProvider),
+                                  icon: const Icon(Icons.lock_open_rounded, size: 16),
+                                  label: const Text('Buka Sumber Cosplay / 18+'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryColor,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
-                      ],
-                    ),
-                  )
+                        )
                 : Scrollbar(
                     controller: _scrollController,
                     thumbVisibility: true,
@@ -375,6 +432,10 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                                             const SizedBox(width: 5),
                                             _buildBadge('COSPLAY / GALERI', const Color(0xFF9D4EDD)),
                                           ],
+                                          if (source.name.toLowerCase().contains('cosplay')) ...[
+                                            const SizedBox(width: 5),
+                                            _buildBadge('VIDEO 🎬', const Color(0xFFE63946)),
+                                          ],
                                         ],
                                       ),
                                     ],
@@ -410,6 +471,66 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                   ),
           ),
         ),
+        ],
+      ),
+    );
+  }
+
+  void _showUnlockDialog(BuildContext context, MangaProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 24),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Buka Kunci Safe Search',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Mematikan Safe Search akan membuka tab Cosplay, Galeri, dan seluruh sumber komik dewasa (18+).\n\nApakah Anda menyatakan bahwa Anda telah berusia 18 tahun atau lebih?',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            height: 1.5,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              provider.setSafeSearch(false);
+              setState(() {});
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Safe Search dinonaktifkan. Tab Cosplay & Galeri telah terbuka!'),
+                  backgroundColor: AppTheme.primaryColor,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE63946)),
+            child: const Text('Saya 18+ (Buka Kunci)'),
+          ),
         ],
       ),
     );

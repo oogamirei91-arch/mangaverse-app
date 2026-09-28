@@ -35,8 +35,19 @@ class SuwayomiSourceModel {
     'isNsfw': isNsfw,
   };
 
-  /// Cek apakah sumber merupakan sumber khusus konten dewasa murni (Hentai/18+)
+  /// Cek apakah sumber merupakan Cosplay / Galeri Foto
+  bool get isCosplayOrGallery {
+    final lower = name.toLowerCase();
+    return lang.toLowerCase() == 'all' ||
+        lower.contains('cosplay') ||
+        lower.contains('photo') ||
+        lower.contains('babes') ||
+        lower.contains('femjoy');
+  }
+
+  /// Cek apakah sumber merupakan sumber khusus konten dewasa murni (Hentai/18+/Cosplay/Galeri)
   bool get isDedicatedNsfw {
+    if (isNsfw) return true;
     final lower = name.toLowerCase();
     return lower.contains('hentai') ||
         lower.contains('doujin') ||
@@ -44,10 +55,18 @@ class SuwayomiSourceModel {
         lower.contains('crot') ||
         lower.contains('babes') ||
         lower.contains('femjoy') ||
-        lower.contains('cosplay');
+        lower.contains('cosplay') ||
+        lower.contains('ero') ||
+        isCosplayOrGallery;
   }
 
-  String get displayName => isDedicatedNsfw
-      ? '$name (${lang.toUpperCase()}) [18+]'
-      : '$name (${lang.toUpperCase()})';
+  String get displayName {
+    if (isCosplayOrGallery) {
+      return '$name (${lang.toUpperCase()}) [Cosplay/Galeri]';
+    }
+    if (isDedicatedNsfw) {
+      return '$name (${lang.toUpperCase()}) [18+]';
+    }
+    return '$name (${lang.toUpperCase()})';
+  }
 }

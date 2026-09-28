@@ -10,6 +10,7 @@ import '../../providers/chapter_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/manga_provider.dart';
 import '../reader/reader_screen.dart';
+import '../video/cosplay_video_player_screen.dart';
 
 class MangaDetailScreen extends StatefulWidget {
   final MangaModel manga;
@@ -42,6 +43,12 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     final isBookmarked = library.isBookmarked(widget.manga.id);
     final history = library.getHistoryForManga(widget.manga.id);
 
+    final titleLower = widget.manga.title.toLowerCase();
+    final hasCosplayOrVideo = titleLower.contains('video') ||
+        titleLower.contains('photos') ||
+        (widget.manga.source?.toLowerCase().contains('cosplay') ?? false) ||
+        (widget.manga.source?.toLowerCase().contains('tele') ?? false);
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: CustomScrollView(
@@ -63,6 +70,33 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
+              if (hasCosplayOrVideo) ...[
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE63946).withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+                  ),
+                  tooltip: 'Tonton Video Cosplay',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CosplayVideoPlayerScreen(
+                          manga: widget.manga,
+                          chapterRealUrl: chapterProvider.chapters.isNotEmpty
+                              ? chapterProvider.chapters.first.url
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 4),
+              ],
               // Tombol Bookmark Favorit
               IconButton(
                 icon: Container(
@@ -274,6 +308,111 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
+                  ],
+
+                  // 🎬 BANNER TONTON VIDEO COSPLAY (JIKA TERSEDIA)
+                  if (hasCosplayOrVideo) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFE63946), Color(0xFF7209B7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFE63946).withOpacity(0.35),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CosplayVideoPlayerScreen(
+                                  manga: widget.manga,
+                                  chapterRealUrl: chapterProvider.chapters.isNotEmpty
+                                      ? chapterProvider.chapters.first.url
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white24,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '🎬 Tonton Video Cosplay',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.25),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              '480p - 1024p',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        'Set ini memiliki video! Putar dengan pilihan kualitas 480p, 720p, hingga 1024p.',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          color: Colors.white.withOpacity(0.9),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
 
                   // Tags Chips

@@ -6,9 +6,11 @@ import 'package:photo_view/photo_view_gallery.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/chapter_model.dart';
+import '../../models/manga_model.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/manga_provider.dart';
 import '../../providers/reader_provider.dart';
+import '../video/cosplay_video_player_screen.dart';
 
 class ReaderScreen extends StatefulWidget {
   final ChapterModel chapter;
@@ -307,6 +309,40 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ],
               ),
             ),
+            // Tombol Tonton Video Cosplay jika tersedia
+            if (widget.mangaTitle.toLowerCase().contains('cosplay') ||
+                widget.mangaTitle.toLowerCase().contains('video') ||
+                widget.chapter.url.contains('cosplaytele')) ...[
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE63946).withOpacity(0.9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+                ),
+                tooltip: 'Tonton Video Cosplay (480p - 1024p)',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CosplayVideoPlayerScreen(
+                        manga: MangaModel(
+                          id: widget.mangaId ?? widget.mangaTitle,
+                          title: widget.mangaTitle,
+                          url: widget.chapter.url,
+                          coverUrl: widget.mangaCoverUrl ?? '',
+                          latestChapter: widget.chapter.displayName,
+                        ),
+                        chapterRealUrl: widget.chapter.url,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 2),
+            ],
             // Tombol Toggle Kualitas Cepat (Data Saver) vs Asli (HQ)
             IconButton(
               icon: Icon(

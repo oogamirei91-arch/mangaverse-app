@@ -46,6 +46,11 @@ jobs:
           fi
           # Setel nama aplikasi di HP agar tampil sebagai KuroReader
           sed -i 's/android:label="[^"]*"/android:label="KuroReader"/g' android/app/src/main/AndroidManifest.xml
+          # Pastikan izin INTERNET & usesCleartextTraffic tersedia untuk Suwayomi & pemutar video
+          if ! grep -q "android.permission.INTERNET" android/app/src/main/AndroidManifest.xml; then
+            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+          fi
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
 
       # 5. Unduh dependensi aplikasi (pub get)
       - name: Install Dependencies

@@ -43,14 +43,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final filteredSettingsSources = allSources.where((s) {
       if (_sourceFilterCategory == 'id' && s.lang.toLowerCase() != 'id') return false;
       if (_sourceFilterCategory == 'en' && s.lang.toLowerCase() != 'en' && s.lang.toLowerCase() != 'eng') return false;
-      if (_sourceFilterCategory == 'cosplay' &&
-          s.lang.toLowerCase() != 'all' &&
-          !s.name.toLowerCase().contains('cosplay') &&
-          !s.name.toLowerCase().contains('photo')) {
+      if (_sourceFilterCategory == 'cosplay' && !s.isCosplayOrGallery) {
         return false;
       }
       return true;
     }).toList();
+    final isSettingsCosplayLocked = mangaProvider.isSafeSearchEnabled && _sourceFilterCategory == 'cosplay';
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -365,7 +363,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           const SizedBox(width: 6),
                           _buildSourceCategoryPill('en', '🇬🇧 English'),
                           const SizedBox(width: 6),
-                          _buildSourceCategoryPill('cosplay', '📸 Cosplay & Galeri'),
+                          _buildSourceCategoryPill(
+                            'cosplay',
+                            mangaProvider.isSafeSearchEnabled ? '🔒 Cosplay & Galeri' : '📸 Cosplay & Galeri',
+                          ),
                         ],
                       ),
                     ),
@@ -379,14 +380,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: Colors.white.withOpacity(0.08)),
                       ),
-                      child: filteredSettingsSources.isEmpty
+                      child: isSettingsCosplayLocked
                           ? Center(
-                              child: Text(
-                                'Tidak ada sumber dalam kategori ini',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white54),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.lock_rounded, color: Colors.redAccent, size: 28),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Tab Cosplay & Galeri Terkunci',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Matikan Safe Search di bawah untuk membuka CosplayTele & foto.',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white60,
+                                        fontSize: 10.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ElevatedButton.icon(
+                                      onPressed: () => _showAgeVerificationDialog(context, mangaProvider),
+                                      icon: const Icon(Icons.lock_open_rounded, size: 14),
+                                      label: const Text('Buka Kunci (18+)', style: TextStyle(fontSize: 11)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFE63946),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
-                          : Scrollbar(
+                          : filteredSettingsSources.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'Tidak ada sumber dalam kategori ini',
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white54),
+                                  ),
+                                )
+                              : Scrollbar(
                               controller: _sourceScrollController,
                               thumbVisibility: true,
                               trackVisibility: true,
@@ -594,8 +636,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 subtitle: Text(
                   mangaProvider.isSafeSearchEnabled
-                      ? 'Safe Search AKTIF: Hanya sumber aman (isNsfw: false) & sembunyikan komik 18+.'
-                      : 'Filter 18+ AKTIF: Membuka sumber dewasa (isNsfw: true) & munculkan komik 18+/NSFW.',
+                      ? 'Safe Search AKTIF: Tab Cosplay, Galeri & komik 18+ dikunci demi keamanan.'
+                      : 'Safe Search NONAKTIF: Seluruh kategori terbuka, termasuk Cosplay, Galeri & sumber dewasa (18+).',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     color: AppTheme.textSecondary,
