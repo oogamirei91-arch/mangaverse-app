@@ -46,8 +46,9 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     final titleLower = widget.manga.title.toLowerCase();
     final hasCosplayOrVideo = titleLower.contains('video') ||
         titleLower.contains('photos') ||
-        (widget.manga.source?.toLowerCase().contains('cosplay') ?? false) ||
-        (widget.manga.source?.toLowerCase().contains('tele') ?? false);
+        titleLower.contains('cosplay') ||
+        widget.manga.tags.any((t) => t.toLowerCase().contains('cosplay')) ||
+        (widget.manga.realUrl?.toLowerCase().contains('cosplaytele') ?? false);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,

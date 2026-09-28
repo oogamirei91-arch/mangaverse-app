@@ -26,6 +26,7 @@ class MangaModel {
   });
 
   String get url => realUrl ?? '';
+  String? get source => sourceId;
   String get serverType => 'suwayomi';
 
   /// URL Cover thumbnail untuk card dan list
