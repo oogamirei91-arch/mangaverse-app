@@ -164,14 +164,36 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
       child: TextField(
         controller: _searchController,
         style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
+        textInputAction: TextInputAction.search,
+        onChanged: (_) => setState(() {}),
         onSubmitted: (_) => _triggerSearch(),
         decoration: InputDecoration(
           hintText: 'Ketik judul, karakter, atau kosongkan...',
           hintStyle: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary, fontSize: 13),
-          prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textSecondary),
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.arrow_forward_rounded, color: AppTheme.primaryColor),
+          prefixIcon: IconButton(
+            icon: const Icon(Icons.search_rounded, color: AppTheme.primaryColor),
+            tooltip: 'Cari',
             onPressed: _triggerSearch,
+          ),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_searchController.text.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary, size: 20),
+                  tooltip: 'Hapus Teks',
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {});
+                  },
+                ),
+              IconButton(
+                icon: const Icon(Icons.arrow_forward_rounded, color: AppTheme.primaryColor, size: 20),
+                tooltip: 'Cari Sekarang',
+                onPressed: _triggerSearch,
+              ),
+              const SizedBox(width: 4),
+            ],
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -203,7 +225,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Semua Sumber (29)',
+                        'Semua Sumber (${(provider.isSafeSearchEnabled ? provider.suwayomiSources : provider.allSuwayomiSourcesRaw).length})',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -282,6 +304,10 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                               color: isCurrent ? Colors.white : AppTheme.textPrimary,
                             ),
                           ),
+                          if (source.isFeatured) ...[
+                            const SizedBox(width: 3),
+                            const Text('⭐', style: TextStyle(fontSize: 10)),
+                          ],
                         ],
                       ),
                     ),

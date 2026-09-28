@@ -111,14 +111,28 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
 
               // Jika sedang dalam mode pencarian
-              if (_searchController.text.trim().isNotEmpty) ...[
-                Text(
-                  'Hasil Pencarian (${mangaProvider.searchResults.length})',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
+              if (mangaProvider.isSearchActive) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Hasil Pencarian (${mangaProvider.searchResults.length})',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.close_rounded, size: 16, color: AppTheme.primaryColor),
+                      label: const Text('Tutup Hasil', style: TextStyle(color: AppTheme.primaryColor, fontSize: 12)),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                        mangaProvider.clearSearch();
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 14),
                 if (mangaProvider.isSearching)
@@ -129,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 else if (mangaProvider.searchResults.isEmpty)
-                  _buildEmptyState('Tidak ada komik yang sesuai kata kunci dan filter terpilih.')
+                  _buildEmptyState('Tidak ada komik yang sesuai kata kunci "${mangaProvider.lastSearchQuery}".')
                 else
                   _buildMangaGrid(mangaProvider.searchResults),
               ] else ...[
@@ -244,6 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchBar(BuildContext context) {
+    final provider = context.read<MangaProvider>();
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
@@ -253,20 +268,38 @@ class _HomeScreenState extends State<HomeScreen> {
       child: TextField(
         controller: _searchController,
         style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
-        onSubmitted: (value) => context.read<MangaProvider>().search(value),
+        textInputAction: TextInputAction.search,
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (value) => provider.search(value),
         decoration: InputDecoration(
           hintText: 'Cari judul manga, manhwa, author...',
-          hintStyle: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary, fontSize: 14),
-          prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textSecondary),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary),
+          hintStyle: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary, fontSize: 13),
+          prefixIcon: IconButton(
+            icon: const Icon(Icons.search_rounded, color: AppTheme.primaryColor),
+            tooltip: 'Cari',
+            onPressed: () => provider.search(_searchController.text),
+          ),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_searchController.text.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary, size: 20),
+                  tooltip: 'Hapus Teks',
                   onPressed: () {
                     _searchController.clear();
-                    context.read<MangaProvider>().clearSearch();
+                    setState(() {});
+                    provider.clearSearch();
                   },
-                )
-              : null,
+                ),
+              IconButton(
+                icon: const Icon(Icons.arrow_forward_rounded, color: AppTheme.primaryColor, size: 20),
+                tooltip: 'Cari Sekarang',
+                onPressed: () => provider.search(_searchController.text),
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
@@ -531,6 +564,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: isCurrent ? Colors.white : AppTheme.textPrimary,
                             ),
                           ),
+                          if (source.isFeatured) ...[
+                            const SizedBox(width: 3),
+                            const Text('⭐', style: TextStyle(fontSize: 10)),
+                          ],
                         ],
                       ),
                     ),

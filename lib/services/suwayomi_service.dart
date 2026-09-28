@@ -182,9 +182,16 @@ class SuwayomiService {
     String query, {
     int page = 1,
   }) async {
+    final cleanQ = query.trim();
+    // Jika query kosong, langsung kembalikan komik populer dari sumber aktif
+    if (cleanQ.isEmpty) {
+      return getPopularManga(serverUrl, sourceId, page: page);
+    }
+
     final base = cleanUrl(serverUrl);
-    final uri = Uri.parse('$base/api/v1/source/$sourceId/search/$page?query=${Uri.encodeComponent(query.trim())}');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
+    // Suwayomi API v1 mewajibkan format: /api/v1/source/{sourceId}/search?query=...&pageNum=...
+    final uri = Uri.parse('$base/api/v1/source/$sourceId/search?query=${Uri.encodeComponent(cleanQ)}&pageNum=$page');
+    final res = await _client.get(uri).timeout(const Duration(seconds: 25));
 
     if (res.statusCode == 200) {
       final bodyTrimmed = res.body.trim();

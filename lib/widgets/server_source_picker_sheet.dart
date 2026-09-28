@@ -372,11 +372,13 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                             decoration: BoxDecoration(
-                              color: isCurrent ? AppTheme.primaryColor.withOpacity(0.12) : Colors.transparent,
+                              color: isCurrent
+                                  ? AppTheme.primaryColor.withOpacity(0.12)
+                                  : (source.isFeatured ? const Color(0xFFFFB703).withOpacity(0.05) : Colors.transparent),
                               borderRadius: BorderRadius.circular(10),
                               border: isCurrent
                                   ? Border.all(color: AppTheme.primaryColor.withOpacity(0.4))
-                                  : null,
+                                  : (source.isFeatured ? Border.all(color: const Color(0xFFFFB703).withOpacity(0.3)) : null),
                             ),
                             child: Row(
                               children: [
@@ -388,7 +390,9 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                                         ? const Color(0xFF9D4EDD).withOpacity(0.18)
                                         : (source.isDedicatedNsfw
                                             ? Colors.redAccent.withOpacity(0.18)
-                                            : AppTheme.primaryColor.withOpacity(0.15)),
+                                            : (source.isFeatured
+                                                ? const Color(0xFFFFB703).withOpacity(0.2)
+                                                : AppTheme.primaryColor.withOpacity(0.15))),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
@@ -396,13 +400,13 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                                         ? Icons.photo_library_rounded
                                         : (source.isDedicatedNsfw
                                             ? Icons.warning_amber_rounded
-                                            : Icons.menu_book_rounded),
+                                            : (source.isFeatured ? Icons.star_rounded : Icons.menu_book_rounded)),
                                     size: 16,
                                     color: isCosplayOrGallery
                                         ? const Color(0xFFC77DFF)
                                         : (source.isDedicatedNsfw
                                             ? const Color(0xFFFF6B6B)
-                                            : AppTheme.primaryColor),
+                                            : (source.isFeatured ? const Color(0xFFFFB703) : AppTheme.primaryColor)),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -413,7 +417,7 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        source.name,
+                                        source.displayName,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 13,
                                           fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
@@ -424,6 +428,10 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                                       Row(
                                         children: [
                                           _buildLangBadge(source.lang),
+                                          if (source.isFeatured) ...[
+                                            const SizedBox(width: 5),
+                                            _buildBadge('⭐ UTAMA', const Color(0xFFFFB703)),
+                                          ],
                                           if (source.isDedicatedNsfw) ...[
                                             const SizedBox(width: 5),
                                             _buildBadge('18+', Colors.redAccent),
