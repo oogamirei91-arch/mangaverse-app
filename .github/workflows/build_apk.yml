@@ -58,14 +58,7 @@ jobs:
           for kt in $(find android/app/src/main -name "MainActivity.kt"); do
             echo "Patching $kt with FlutterFragmentActivity..."
             PKG=$(grep "^package " "$kt" | head -n 1)
-            cat <<EOF > "$kt"
-$PKG
-
-import io.flutter.embedding.android.FlutterFragmentActivity
-
-class MainActivity: FlutterFragmentActivity() {
-}
-EOF
+            printf "%s\n\nimport io.flutter.embedding.android.FlutterFragmentActivity\n\nclass MainActivity: FlutterFragmentActivity() {\n}\n" "$PKG" > "$kt"
             echo "--- $kt content ---"
             cat "$kt"
           done
