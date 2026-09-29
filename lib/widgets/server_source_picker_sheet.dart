@@ -530,27 +530,10 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
     );
   }
 
-  void _showUnlockDialog(BuildContext context, MangaProvider provider) async {
-    final authenticated = await BiometricService.authenticate(
-      reason: 'Pindai sidik jari atau biometrik Anda untuk membuka kunci Safe Search (Mode 18+)',
-    );
-
-    if (!authenticated) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verifikasi sidik jari/biometrik dibatalkan.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-      return;
-    }
-
-    if (!context.mounted) return;
-
+  void _showUnlockDialog(BuildContext context, MangaProvider provider) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -562,21 +545,23 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                 color: Colors.redAccent.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 24),
+              child: const Icon(Icons.fingerprint_rounded, color: Colors.redAccent, size: 24),
             ),
             const SizedBox(width: 10),
-            Text(
-              'Buka Kunci Safe Search',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-                color: Colors.white,
+            Expanded(
+              child: Text(
+                'Buka Kunci Safe Search (18+)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
         ),
         content: Text(
-          'Mematikan Safe Search akan membuka tab Cosplay, Galeri, dan seluruh sumber komik dewasa (18+).\n\nApakah Anda menyatakan bahwa Anda telah berusia 18 tahun atau lebih?',
+          'Mematikan Safe Search akan membuka tab Cosplay, Galeri, dan seluruh sumber komik dewasa (18+).\n\nDiperlukan pemindaian sidik jari atau biometrik Anda untuk melanjutkan.',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 13,
             height: 1.5,
@@ -588,20 +573,44 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Batal', style: TextStyle(color: Colors.white70)),
           ),
-          ElevatedButton(
-            onPressed: () {
+          ElevatedButton.icon(
+            onPressed: () async {
               Navigator.pop(ctx);
-              provider.setSafeSearch(false);
-              setState(() {});
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Safe Search dinonaktifkan. Tab Cosplay & Galeri telah terbuka!'),
-                  backgroundColor: AppTheme.primaryColor,
-                ),
+              final authenticated = await BiometricService.authenticate(
+                reason: 'Pindai sidik jari atau biometrik Anda untuk membuka kunci Safe Search (Mode 18+)',
               );
+
+              if (!authenticated) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Verifikasi sidik jari/biometrik dibatalkan atau gagal. Safe Search tetap aktif.'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              provider.setSafeSearch(false);
+              setState(() {
+                _selectedCategory = 'cosplay';
+              });
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Safe Search dinonaktifkan. Tab Cosplay & Galeri telah terbuka!'),
+                    backgroundColor: AppTheme.primaryColor,
+                  ),
+                );
+              }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE63946)),
-            child: const Text('Saya 18+ (Buka Kunci)'),
+            icon: const Icon(Icons.fingerprint_rounded, size: 16),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE63946),
+              foregroundColor: Colors.white,
+            ),
+            label: const Text('Pindai Sidik Jari (18+)'),
           ),
         ],
       ),
@@ -617,7 +626,7 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Verifikasi sidik jari/biometrik dibatalkan.'),
+            content: Text('Verifikasi sidik jari/biometrik dibatalkan atau gagal.'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -639,8 +648,14 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
 
   Widget _buildCategoryChip(String key, String label) {
     final isSelected = _selectedCategory == key;
+    final mangaProvider = context.read<MangaProvider>();
     return GestureDetector(
-      onTap: () => setState(() => _selectedCategory = key),
+      onTap: () {
+        setState(() => _selectedCategory = key);
+        if (key == 'cosplay' && mangaProvider.isSafeSearchEnabled) {
+          _showUnlockDialog(context, mangaProvider);
+        }
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(

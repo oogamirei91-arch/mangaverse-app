@@ -647,29 +647,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 activeColor: AppTheme.primaryColor,
                 value: mangaProvider.isSafeSearchEnabled,
                 onChanged: (bool value) async {
-                  final authenticated = await BiometricService.authenticate(
-                    reason: value
-                        ? 'Pindai sidik jari atau biometrik Anda untuk mengaktifkan Safe Search'
-                        : 'Pindai sidik jari atau biometrik Anda untuk mematikan Safe Search (Mode 18+)',
-                  );
-
-                  if (!authenticated) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Verifikasi sidik jari/biometrik dibatalkan.'),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                    }
-                    return;
-                  }
-
-                  if (!context.mounted) return;
-
                   if (!value) {
                     _showAgeVerificationDialog(context, mangaProvider);
                   } else {
+                    final authenticated = await BiometricService.authenticate(
+                      reason: 'Pindai sidik jari atau biometrik Anda untuk mengaktifkan Safe Search',
+                    );
+
+                    if (!authenticated) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Verifikasi sidik jari/biometrik dibatalkan atau gagal.'),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      }
+                      return;
+                    }
+
+                    if (!context.mounted) return;
                     mangaProvider.setSafeSearch(true);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -775,21 +772,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: Colors.redAccent.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 24),
+              child: const Icon(Icons.fingerprint_rounded, color: Colors.redAccent, size: 24),
             ),
             const SizedBox(width: 10),
-            Text(
-              'Konfirmasi Usia (18+)',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-                color: Colors.white,
+            Expanded(
+              child: Text(
+                'Buka Kunci Safe Search (18+)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
         ),
         content: Text(
-          'Mematikan Safe Search akan menampilkan seluruh kategori komik termasuk konten dewasa (18+).\n\nApakah Anda menyatakan bahwa Anda telah berusia 18 tahun atau lebih?',
+          'Mematikan Safe Search akan menampilkan seluruh kategori komik termasuk konten dewasa (18+).\n\nDiperlukan pemindaian sidik jari atau biometrik Anda untuk melanjutkan.',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 13,
             height: 1.5,
@@ -801,19 +800,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Batal', style: TextStyle(color: Colors.white70)),
           ),
-          ElevatedButton(
-            onPressed: () {
+          ElevatedButton.icon(
+            onPressed: () async {
               Navigator.pop(ctx);
-              provider.setSafeSearch(false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Safe Search dinonaktifkan. Menampilkan seluruh kategori.'),
-                  backgroundColor: AppTheme.primaryColor,
-                ),
+              final authenticated = await BiometricService.authenticate(
+                reason: 'Pindai sidik jari atau biometrik Anda untuk membuka kunci Safe Search (Mode 18+)',
               );
+
+              if (!authenticated) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Verifikasi sidik jari/biometrik dibatalkan atau gagal. Safe Search tetap aktif.'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              provider.setSafeSearch(false);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Safe Search berhasil dinonaktifkan. Seluruh kategori telah terbuka!'),
+                    backgroundColor: AppTheme.primaryColor,
+                  ),
+                );
+              }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Saya 18+ Tahun'),
+            icon: const Icon(Icons.fingerprint_rounded, size: 16),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE63946),
+              foregroundColor: Colors.white,
+            ),
+            label: const Text('Pindai Sidik Jari (18+)'),
           ),
         ],
       ),
@@ -851,8 +872,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSourceCategoryPill(String key, String label) {
     final isSelected = _sourceFilterCategory == key;
+    final mangaProvider = context.read<MangaProvider>();
     return GestureDetector(
-      onTap: () => setState(() => _sourceFilterCategory = key),
+      onTap: () {
+        setState(() => _sourceFilterCategory = key);
+        if (key == 'cosplay' && mangaProvider.isSafeSearchEnabled) {
+          _showAgeVerificationDialog(context, mangaProvider);
+        }
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(

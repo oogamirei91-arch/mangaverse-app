@@ -55,16 +55,27 @@ jobs:
             sed -i 's/<manifest[^>]*>/&\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"\/>\n    <uses-permission android:name="android.permission.USE_FINGERPRINT"\/>/' android/app/src/main/AndroidManifest.xml
           fi
           # Pastikan MainActivity mewarisi FlutterFragmentActivity agar dialog sidik jari (local_auth) berjalan normal
-          find android/app/src/main -name "MainActivity.kt" -exec sed -i 's/import io.flutter.embedding.android.FlutterActivity/import io.flutter.embedding.android.FlutterFragmentActivity/g' {} +
-          find android/app/src/main -name "MainActivity.kt" -exec sed -i 's/FlutterActivity/FlutterFragmentActivity/g' {} +
-          find android/app/src/main -name "MainActivity.java" -exec sed -i 's/import io.flutter.embedding.android.FlutterActivity;/import io.flutter.embedding.android.FlutterFragmentActivity;/g' {} +
-          find android/app/src/main -name "MainActivity.java" -exec sed -i 's/FlutterActivity/FlutterFragmentActivity/g' {} +
+          for kt in $(find android/app/src/main -name "MainActivity.kt"); do
+            echo "Patching $kt with FlutterFragmentActivity..."
+            PKG=$(grep "^package " "$kt" | head -n 1)
+            cat <<EOF > "$kt"
+$PKG
+
+import io.flutter.embedding.android.FlutterFragmentActivity
+
+class MainActivity: FlutterFragmentActivity() {
+}
+EOF
+            echo "--- $kt content ---"
+            cat "$kt"
+          done
+          for jv in $(find android/app/src/main -name "MainActivity.java"); do
+            sed -i 's/import io.flutter.embedding.android.FlutterActivity;/import io.flutter.embedding.android.FlutterFragmentActivity;/g' "$jv"
+            sed -i 's/FlutterActivity/FlutterFragmentActivity/g' "$jv"
+          done
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
-          # Pastikan minSdkVersion minimal 21 untuk webview_flutter & local_auth
-          sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle || true
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle || true
-          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle || true
-          sed -i 's/minSdk flutter.minSdkVersion/minSdk 21/g' android/app/build.gradle || true
+          # Pastikan minSdkVersion minimal 21 untuk webview_flutter & local_auth di semua build.gradle / build.gradle.kts
+          find android/app -name "build.gradle*" -exec sed -i 's/flutter.minSdkVersion/21/g' {} +
 
       # 5. Unduh dependensi aplikasi (pub get)
       - name: Install Dependencies

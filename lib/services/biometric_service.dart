@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -10,7 +11,8 @@ class BiometricService {
       final bool canCheck = await _auth.canCheckBiometrics;
       final bool isDeviceSupported = await _auth.isDeviceSupported();
       return canCheck || isDeviceSupported;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('BiometricService.canAuthenticate error: $e');
       return false;
     }
   }
@@ -29,29 +31,21 @@ class BiometricService {
     String reason = 'Pindai sidik jari atau biometrik Anda untuk keamanan Safe Search',
   }) async {
     try {
-      final bool isSupported = await canAuthenticate();
-      if (!isSupported) {
-        // Jika perangkat tidak memiliki sensor biometrik atau emulator, izinkan langsung
-        return true;
-      }
-
       final bool didAuthenticate = await _auth.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false, // Memungkinkan fallback PIN / Pola perangkat jika sidik jari gagal
           useErrorDialogs: true,
+          sensitiveTransaction: true,
         ),
       );
       return didAuthenticate;
     } on PlatformException catch (e) {
-      // Kode error umum: NotAvailable, NotEnrolled, LockedOut, PermanentlyLockedOut
-      if (e.code == 'NotEnrolled' || e.code == 'PasscodeNotSet') {
-        // Jika belum ada sidik jari yang didaftarkan di setelan HP
-        return true;
-      }
+      debugPrint('Biometric PlatformException: [${e.code}] ${e.message}');
       return false;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Biometric general error: $e');
       return false;
     }
   }
