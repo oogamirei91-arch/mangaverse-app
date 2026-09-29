@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/manga_provider.dart';
+import '../../services/biometric_service.dart';
 import '../../widgets/server_source_picker_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -645,11 +646,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 activeColor: AppTheme.primaryColor,
                 value: mangaProvider.isSafeSearchEnabled,
-                onChanged: (bool value) {
+                onChanged: (bool value) async {
+                  final authenticated = await BiometricService.authenticate(
+                    reason: value
+                        ? 'Pindai sidik jari atau biometrik Anda untuk mengaktifkan Safe Search'
+                        : 'Pindai sidik jari atau biometrik Anda untuk mematikan Safe Search (Mode 18+)',
+                  );
+
+                  if (!authenticated) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Verifikasi sidik jari/biometrik dibatalkan.'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  if (!context.mounted) return;
+
                   if (!value) {
                     _showAgeVerificationDialog(context, mangaProvider);
                   } else {
                     mangaProvider.setSafeSearch(true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Safe Search berhasil diaktifkan dengan keamanan biometrik.'),
+                        backgroundColor: AppTheme.primaryColor,
+                      ),
+                    );
                   }
                 },
               ),

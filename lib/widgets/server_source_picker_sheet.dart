@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../models/suwayomi_source_model.dart';
 import '../providers/manga_provider.dart';
+import '../services/biometric_service.dart';
 
 /// Modal Bottom Sheet & Scroll Box untuk memilih Server / Sumber Komik di Suwayomi
 void showServerSourcePickerSheet(BuildContext context) {
@@ -229,6 +230,51 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
                         fontWeight: FontWeight.w700,
                         color: AppTheme.primaryColor,
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Peringatan Safe Search jika TIDAK aktif (Bisa dikunci kembali dengan sidik jari/biometrik)
+          if (!isSafeSearch) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_open_rounded, color: Colors.redAccent, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Safe Search NONAKTIF: Semua kategori & sumber 18+ terbuka.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _activateSafeSearchWithBiometrics(context, mangaProvider),
+                    icon: const Icon(Icons.fingerprint_rounded, size: 14, color: Color(0xFF06D6A0)),
+                    label: Text(
+                      'Kunci (Aktifkan)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF06D6A0),
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
                 ],
@@ -484,7 +530,25 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
     );
   }
 
-  void _showUnlockDialog(BuildContext context, MangaProvider provider) {
+  void _showUnlockDialog(BuildContext context, MangaProvider provider) async {
+    final authenticated = await BiometricService.authenticate(
+      reason: 'Pindai sidik jari atau biometrik Anda untuk membuka kunci Safe Search (Mode 18+)',
+    );
+
+    if (!authenticated) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Verifikasi sidik jari/biometrik dibatalkan.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -542,6 +606,35 @@ class _ServerSourcePickerSheetState extends State<ServerSourcePickerSheet> {
         ],
       ),
     );
+  }
+
+  Future<void> _activateSafeSearchWithBiometrics(BuildContext context, MangaProvider provider) async {
+    final authenticated = await BiometricService.authenticate(
+      reason: 'Pindai sidik jari atau biometrik Anda untuk mengaktifkan Safe Search',
+    );
+
+    if (!authenticated) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Verifikasi sidik jari/biometrik dibatalkan.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
+    provider.setSafeSearch(true);
+    setState(() {});
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Safe Search berhasil diaktifkan dengan keamanan biometrik!'),
+          backgroundColor: AppTheme.primaryColor,
+        ),
+      );
+    }
   }
 
   Widget _buildCategoryChip(String key, String label) {
