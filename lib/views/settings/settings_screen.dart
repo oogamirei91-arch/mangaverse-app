@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -187,16 +188,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 12),
 
                   // Input URL Server Suwayomi
-                  Text(
-                    'Alamat URL Server:',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textSecondary),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Alamat URL Server Suwayomi:',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.content_paste_rounded, size: 14, color: AppTheme.primaryColor),
+                        label: const Text('Tempel Link', style: TextStyle(fontSize: 11, color: AppTheme.primaryColor)),
+                        onPressed: () async {
+                          final data = await Clipboard.getData(Clipboard.kTextPlain);
+                          if (data?.text != null && data!.text!.trim().isNotEmpty) {
+                            final raw = data.text!.trim();
+                            setState(() {
+                              _suwayomiUrlController.text = raw;
+                            });
+                            mangaProvider.setSuwayomiUrl(raw);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('📋 Link berhasil ditempel! Tekan tombol "Simpan & Hubungkan".'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   TextField(
                     controller: _suwayomiUrlController,
                     style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'http://192.168.137.1:4567 atau https://pilot-omaha-korea-limousines.trycloudflare.com',
+                      hintText: 'https://xxxx.trycloudflare.com atau http://192.168.137.1:4567',
                       hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white30, fontSize: 12),
                       filled: true,
                       fillColor: AppTheme.cardColor,
@@ -209,8 +235,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: AppTheme.primaryColor),
                       ),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_suwayomiUrlController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.clear_rounded, color: Colors.white38, size: 18),
+                              tooltip: 'Bersihkan',
+                              onPressed: () {
+                                setState(() {
+                                  _suwayomiUrlController.clear();
+                                });
+                                mangaProvider.setSuwayomiUrl('');
+                              },
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.content_paste_rounded, color: AppTheme.primaryColor, size: 18),
+                            tooltip: 'Tempel dari Clipboard',
+                            onPressed: () async {
+                              final data = await Clipboard.getData(Clipboard.kTextPlain);
+                              if (data?.text != null && data!.text!.trim().isNotEmpty) {
+                                final raw = data.text!.trim();
+                                setState(() {
+                                  _suwayomiUrlController.text = raw;
+                                });
+                                mangaProvider.setSuwayomiUrl(raw);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                    onChanged: (val) => mangaProvider.setSuwayomiUrl(val),
+                    onChanged: (val) {
+                      setState(() {});
+                      mangaProvider.setSuwayomiUrl(val);
+                    },
                   ),
                   const SizedBox(height: 8),
 
@@ -219,20 +278,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
+                        if (mangaProvider.recentUrls.isNotEmpty)
+                          ...mangaProvider.recentUrls.map((recent) {
+                            final isCloudflare = recent.contains('trycloudflare.com');
+                            final label = isCloudflare
+                                ? '🌐 Cloudflare: ${recent.replaceFirst('https://', '').split('.').first}'
+                                : (recent.contains('192.168.') ? '📶 Hotspot' : '💻 Local');
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _buildUrlPresetChip(label, recent, mangaProvider),
+                            );
+                          }),
                         _buildUrlPresetChip(
-                          '🌐 Cloudflare Online',
-                          'https://pilot-omaha-korea-limousines.trycloudflare.com',
-                          mangaProvider,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildUrlPresetChip(
-                          '📶 Hotspot PC',
+                          '📶 Hotspot PC (192.168.137.1)',
                           'http://192.168.137.1:4567',
                           mangaProvider,
                         ),
                         const SizedBox(width: 8),
                         _buildUrlPresetChip(
-                          '💻 Localhost',
+                          '💻 Localhost (127.0.0.1)',
                           'http://127.0.0.1:4567',
                           mangaProvider,
                         ),
@@ -241,7 +305,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '💡 Tips: Gunakan URL Cloudflare jika di luar rumah, atau http://192.168.137.1:4567 jika HP terhubung langsung ke Hotspot PC (lebih cepat & stabil tanpa expired).',
+                    '💡 Tips: Setiap kali Anda memasukkan link https://...trycloudflare.com baru, alamat lama otomatis tergantikan dan tersimpan untuk seterusnya saat aplikasi dibuka kembali.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       color: AppTheme.textSecondary.withOpacity(0.8),
@@ -250,16 +314,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Tombol Tes Koneksi & Status
+                  // Tombol Simpan & Hubungkan ke Server
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: mangaProvider.isTestingSuwayomi
                           ? null
                           : () async {
-                              await mangaProvider.testSuwayomiConnection(
+                              final success = await mangaProvider.testSuwayomiConnection(
                                 customUrl: _suwayomiUrlController.text,
+                                refreshHomeOnSuccess: true,
                               );
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      success
+                                          ? '✅ Alamat tersimpan & berhasil terhubung!'
+                                          : '❌ Gagal terhubung: pastikan CMD Cloudflare di PC masih berjalan.',
+                                    ),
+                                    backgroundColor: success ? Colors.green.shade800 : Colors.red.shade800,
+                                    duration: const Duration(seconds: 3),
+                                  ),
+                                );
+                              }
                             },
                       icon: mangaProvider.isTestingSuwayomi
                           ? const SizedBox(
@@ -267,9 +345,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               height: 14,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
-                          : const Icon(Icons.sync_rounded, size: 18),
+                          : const Icon(Icons.cloud_done_rounded, size: 18),
                       label: Text(
-                        mangaProvider.isTestingSuwayomi ? 'Menguji Koneksi...' : 'Tes Koneksi & Ambil Sumber',
+                        mangaProvider.isTestingSuwayomi ? 'Menguji & Menyimpan...' : 'Simpan & Hubungkan ke Server',
                         style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -845,9 +923,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isSelected = provider.suwayomiUrl.trim().toLowerCase() == url.trim().toLowerCase();
     return GestureDetector(
       onTap: () async {
-        _suwayomiUrlController.text = url;
-        provider.setSuwayomiUrl(url);
-        await provider.testSuwayomiConnection(customUrl: url);
+        setState(() {
+          _suwayomiUrlController.text = url;
+        });
+        await provider.setSuwayomiUrl(url);
+        await provider.testSuwayomiConnection(customUrl: url, refreshHomeOnSuccess: true);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

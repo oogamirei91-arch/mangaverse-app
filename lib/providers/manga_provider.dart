@@ -9,6 +9,7 @@ class MangaProvider extends ChangeNotifier {
 
   static const String _safeSearchPrefKey = 'mangaverse_safe_search_enabled';
   static const String _suwayomiUrlPrefKey = 'kuro_suwayomi_url';
+  static const String _suwayomiRecentUrlsPrefKey = 'kuro_suwayomi_recent_urls';
   static const String _suwayomiSourceIdPrefKey = 'kuro_suwayomi_source_id';
   static const String _suwayomiSourceNamePrefKey = 'kuro_suwayomi_source_name';
 
@@ -28,7 +29,8 @@ class MangaProvider extends ChangeNotifier {
   String? _errorMessage;
 
   // --- SUWAYOMI SERVER CONFIGURATION ---
-  String _suwayomiUrl = 'https://pilot-omaha-korea-limousines.trycloudflare.com';
+  String _suwayomiUrl = 'http://127.0.0.1:4567';
+  List<String> _recentUrls = [];
   String? _suwayomiSourceId;
   String? _suwayomiSourceName;
   List<SuwayomiSourceModel> _suwayomiSources = [];
@@ -107,6 +109,7 @@ class MangaProvider extends ChangeNotifier {
   String get activeServer => 'suwayomi';
   bool get isSuwayomiActive => true;
   String get suwayomiUrl => _suwayomiUrl;
+  List<String> get recentUrls => List.unmodifiable(_recentUrls);
   String? get suwayomiSourceId => _suwayomiSourceId;
   String? get suwayomiSourceName => _suwayomiSourceName;
   bool get isTestingSuwayomi => _isTestingSuwayomi;
@@ -128,13 +131,24 @@ class MangaProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _isSafeSearchEnabled = prefs.getBool(_safeSearchPrefKey) ?? true;
-      _suwayomiUrl = prefs.getString(_suwayomiUrlPrefKey) ?? 'https://pilot-omaha-korea-limousines.trycloudflare.com';
+      final savedUrl = prefs.getString(_suwayomiUrlPrefKey);
+      if (savedUrl != null && savedUrl.trim().isNotEmpty) {
+        _suwayomiUrl = _suwayomiService.cleanUrl(savedUrl);
+      } else {
+        _suwayomiUrl = 'http://127.0.0.1:4567';
+      }
+
+      _recentUrls = prefs.getStringList(_suwayomiRecentUrlsPrefKey) ?? [];
+      if (_suwayomiUrl.isNotEmpty && !_recentUrls.contains(_suwayomiUrl)) {
+        _recentUrls.insert(0, _suwayomiUrl);
+      }
+
       _suwayomiSourceId = prefs.getString(_suwayomiSourceIdPrefKey);
       _suwayomiSourceName = prefs.getString(_suwayomiSourceNamePrefKey);
       notifyListeners();
 
       // Sambungkan ke Suwayomi dan ambil sumber komik
-      await testSuwayomiConnection();
+      await testSuwayomiConnection(refreshHomeOnSuccess: false);
     } catch (_) {}
     await fetchHomeData();
   }
@@ -143,13 +157,27 @@ class MangaProvider extends ChangeNotifier {
     // KuroReader sekarang 100% menggunakan Suwayomi
   }
 
-  /// Mengatur Alamat URL Suwayomi-Server
+  /// Menambahkan URL ke riwayat URL terbaru
+  void _addToRecentUrls(String url) {
+    if (url.trim().isEmpty) return;
+    final cleaned = _suwayomiService.cleanUrl(url);
+    _recentUrls.remove(cleaned);
+    _recentUrls.insert(0, cleaned);
+    if (_recentUrls.length > 5) {
+      _recentUrls = _recentUrls.sublist(0, 5);
+    }
+  }
+
+  /// Mengatur Alamat URL Suwayomi-Server dan menyimpannya secara permanen
   Future<void> setSuwayomiUrl(String url) async {
-    _suwayomiUrl = url.trim();
+    final cleaned = _suwayomiService.cleanUrl(url);
+    _suwayomiUrl = cleaned;
+    _addToRecentUrls(cleaned);
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_suwayomiUrlPrefKey, _suwayomiUrl);
+      await prefs.setStringList(_suwayomiRecentUrlsPrefKey, _recentUrls);
     } catch (_) {}
   }
 
@@ -168,10 +196,19 @@ class MangaProvider extends ChangeNotifier {
     }
   }
 
-  /// Menguji koneksi ke Suwayomi-Server dan memuat daftar ekstensi
-  Future<void> testSuwayomiConnection({String? customUrl}) async {
+  /// Menguji koneksi ke Suwayomi-Server, menyimpan URL baru secara permanen, dan memuat daftar ekstensi
+  Future<bool> testSuwayomiConnection({
+    String? customUrl,
+    bool refreshHomeOnSuccess = true,
+  }) async {
     if (customUrl != null && customUrl.trim().isNotEmpty) {
-      _suwayomiUrl = customUrl.trim();
+      _suwayomiUrl = _suwayomiService.cleanUrl(customUrl);
+      _addToRecentUrls(_suwayomiUrl);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_suwayomiUrlPrefKey, _suwayomiUrl);
+        await prefs.setStringList(_suwayomiRecentUrlsPrefKey, _recentUrls);
+      } catch (_) {}
     }
     _isTestingSuwayomi = true;
     _suwayomiConnectionStatus = null;
@@ -183,6 +220,13 @@ class MangaProvider extends ChangeNotifier {
     _suwayomiConnectionStatus = result.message;
 
     if (result.success) {
+      // Pastikan URL selalu tersimpan permanen ke SharedPreferences saat koneksi sukses
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_suwayomiUrlPrefKey, _suwayomiUrl);
+        await prefs.setStringList(_suwayomiRecentUrlsPrefKey, _recentUrls);
+      } catch (_) {}
+
       // Simpan sumber bahasa ID, EN, dan ALL (Cosplay & Galeri), buang bahasa asing lainnya
       _suwayomiSources = result.sources.where((s) {
         if (s.id == '0') return false;
@@ -215,8 +259,17 @@ class MangaProvider extends ChangeNotifier {
           await prefs.setString(_suwayomiSourceNamePrefKey, _suwayomiSourceName!);
         } catch (_) {}
       }
+
+      notifyListeners();
+
+      if (refreshHomeOnSuccess) {
+        await fetchHomeData();
+      }
+      return true;
+    } else {
+      notifyListeners();
+      return false;
     }
-    notifyListeners();
   }
 
   /// Toggle Safe Search (Filter 18+)

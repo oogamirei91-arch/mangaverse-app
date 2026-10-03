@@ -46,7 +46,9 @@ class ReaderProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = suwayomiUrl ?? 'https://pilot-omaha-korea-limousines.trycloudflare.com';
+      final url = (suwayomiUrl != null && suwayomiUrl.trim().isNotEmpty)
+          ? suwayomiUrl
+          : 'http://127.0.0.1:4567';
       final mId = mangaId ?? '1';
       _pagesData = await _suwayomiService.getChapterPages(
         url,

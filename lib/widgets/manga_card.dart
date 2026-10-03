@@ -1,8 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../models/manga_model.dart';
+import '../providers/manga_provider.dart';
 import '../views/detail/manga_detail_screen.dart';
 
 class MangaCard extends StatelessWidget {
@@ -19,6 +21,7 @@ class MangaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final suwayomiUrl = context.select<MangaProvider, String>((p) => p.suwayomiUrl);
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -50,7 +53,7 @@ class MangaCard extends StatelessWidget {
               Hero(
                 tag: 'manga-cover-${manga.id}',
                 child: CachedNetworkImage(
-                  imageUrl: manga.coverUrl,
+                  imageUrl: manga.resolveCover(suwayomiUrl),
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(
                     color: AppTheme.cardColor,

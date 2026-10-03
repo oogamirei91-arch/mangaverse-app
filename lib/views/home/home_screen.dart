@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -102,6 +103,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Banner peringatan jika Suwayomi / Cloudflare terputus
+              if (!mangaProvider.isSuwayomiConnected)
+                _buildDisconnectedServerBanner(context, mangaProvider),
+
               // 1. Search Bar
               _buildSearchBar(context),
               const SizedBox(height: 14),
@@ -758,6 +763,225 @@ class _HomeScreenState extends State<HomeScreen> {
               style: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary, fontSize: 14),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDisconnectedServerBanner(BuildContext context, MangaProvider provider) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2C1A0E),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.orange.shade800.withOpacity(0.6)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade900.withOpacity(0.4),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.cloud_off_rounded, color: Colors.orangeAccent, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Server Suwayomi Terputus',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Tautan Cloudflare mungkin telah berganti.',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white70,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => _showQuickUrlDialog(context, provider),
+            child: Text(
+              'Ganti URL',
+              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQuickUrlDialog(BuildContext context, MangaProvider provider) {
+    final controller = TextEditingController(text: provider.suwayomiUrl);
+    bool isSaving = false;
+    String? errorMsg;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.cloud_sync_rounded, color: AppTheme.primaryColor, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Perbarui Alamat Cloudflare',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Masukkan tautan Cloudflare baru dari CMD (contoh: https://xxxx.trycloudflare.com). Alamat ini akan otomatis menimpa yang lama dan tersimpan untuk seterusnya.',
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'https://xxxx.trycloudflare.com',
+                  hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white30, fontSize: 12),
+                  filled: true,
+                  fillColor: AppTheme.cardColor,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.primaryColor),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste_rounded, color: AppTheme.primaryColor, size: 20),
+                    tooltip: 'Tempel dari Clipboard',
+                    onPressed: () async {
+                      final data = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (data?.text != null && data!.text!.trim().isNotEmpty) {
+                        setModalState(() {
+                          controller.text = data.text!.trim();
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              if (errorMsg != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  errorMsg!,
+                  style: GoogleFonts.plusJakartaSans(color: Colors.redAccent, fontSize: 11),
+                ),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          final newUrl = controller.text.trim();
+                          if (newUrl.isEmpty) {
+                            setModalState(() => errorMsg = 'Alamat URL tidak boleh kosong.');
+                            return;
+                          }
+                          setModalState(() {
+                            isSaving = true;
+                            errorMsg = null;
+                          });
+
+                          final success = await provider.testSuwayomiConnection(
+                            customUrl: newUrl,
+                            refreshHomeOnSuccess: true,
+                          );
+
+                          if (ctx.mounted) {
+                            if (success) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('✅ Berhasil terhubung & alamat baru otomatis disimpan!'),
+                                  backgroundColor: Color(0xFF2E7D32),
+                                  duration: Duration(seconds: 3),
+                                ),
+                              );
+                            } else {
+                              setModalState(() {
+                                isSaving = false;
+                                errorMsg = provider.suwayomiConnectionStatus ??
+                                    'Gagal terhubung. Pastikan CMD Cloudflare di PC masih aktif.';
+                              });
+                            }
+                          }
+                        },
+                  icon: isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.check_circle_rounded, size: 18),
+                  label: Text(
+                    isSaving ? 'Menghubungkan...' : 'Simpan & Terapkan',
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

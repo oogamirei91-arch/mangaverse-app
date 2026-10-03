@@ -39,6 +39,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final chapterProvider = context.watch<ChapterProvider>();
+    final mangaProvider = context.watch<MangaProvider>();
     final library = context.watch<LibraryProvider>();
     final isBookmarked = library.isBookmarked(widget.manga.id);
     final history = library.getHistoryForManga(widget.manga.id);
@@ -137,7 +138,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                 children: [
                   // Blurred Background
                   CachedNetworkImage(
-                    imageUrl: widget.manga.coverUrlOriginal,
+                    imageUrl: widget.manga.resolveCover(mangaProvider.suwayomiUrl),
                     fit: BoxFit.cover,
                     errorWidget: (_, __, ___) => Container(color: AppTheme.cardColor),
                   ),
@@ -160,7 +161,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(14),
                             child: CachedNetworkImage(
-                              imageUrl: widget.manga.coverUrl,
+                              imageUrl: widget.manga.resolveCover(mangaProvider.suwayomiUrl),
                               width: 110,
                               height: 160,
                               fit: BoxFit.cover,

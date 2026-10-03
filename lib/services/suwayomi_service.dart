@@ -8,13 +8,35 @@ import '../models/suwayomi_source_model.dart';
 class SuwayomiService {
   final http.Client _client = http.Client();
 
-  /// Membersihkan URL agar valid (menghapus trailing slash, memastikan http/https, membersihkan subpath)
-  String cleanUrl(String rawUrl) {
+  /// Membersihkan URL agar valid (menghapus trailing slash, memastikan http/https, mengekstrak URL dari log terminal, membersihkan subpath)
+  String cleanUrl(String rawUrl, {String fallback = 'http://127.0.0.1:4567'}) {
     String trimmed = rawUrl.trim();
-    if (trimmed.isEmpty) return 'https://pilot-omaha-korea-limousines.trycloudflare.com';
-    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    if (trimmed.isEmpty) return fallback;
+
+    // Bersihkan tanda kutip jika tercopy dari terminal
+    trimmed = trimmed.replaceAll('"', '').replaceAll("'", '');
+
+    // Ekstrak URL jika user meng-copy seluruh baris log terminal
+    // Contoh: "|  https://xxxx.trycloudflare.com  |" atau "Visit it at: https://xxxx.trycloudflare.com"
+    final cloudflareRegex = RegExp(r'(https?://[a-zA-Z0-9-]+\.trycloudflare\.com[^\s]*)');
+    final cfMatch = cloudflareRegex.firstMatch(trimmed);
+    if (cfMatch != null) {
+      trimmed = cfMatch.group(1)!;
+    } else {
+      final generalUrlRegex = RegExp(r'(https?://[^\s]+)');
+      final genMatch = generalUrlRegex.firstMatch(trimmed);
+      if (genMatch != null) {
+        trimmed = genMatch.group(1)!;
+      }
+    }
+
+    // Jika user hanya mengetik nama domain trycloudflare tanpa https://
+    if (trimmed.contains('trycloudflare.com') && !trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      trimmed = 'https://$trimmed';
+    } else if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
       trimmed = 'http://$trimmed';
     }
+
     while (trimmed.endsWith('/')) {
       trimmed = trimmed.substring(0, trimmed.length - 1);
     }
@@ -29,7 +51,7 @@ class SuwayomiService {
     while (trimmed.endsWith('/')) {
       trimmed = trimmed.substring(0, trimmed.length - 1);
     }
-    return trimmed;
+    return trimmed.isNotEmpty ? trimmed : fallback;
   }
 
   /// Menguji koneksi ke Suwayomi-Server dan mengambil sumber yang terpasang

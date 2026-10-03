@@ -40,6 +40,20 @@ class MangaModel {
     return 'https://via.placeholder.com/256x360.png?text=No+Cover';
   }
 
+  /// Menyesuaikan host cover Suwayomi (/api/v1/manga/.../thumbnail) dengan server aktif saat ini
+  String resolveCover(String? currentServerUrl) {
+    final current = coverUrl;
+    if (currentServerUrl != null && currentServerUrl.isNotEmpty && current.contains('/api/v1/manga/')) {
+      final idx = current.indexOf('/api/v1/manga/');
+      final path = current.substring(idx);
+      final cleanBase = currentServerUrl.endsWith('/')
+          ? currentServerUrl.substring(0, currentServerUrl.length - 1)
+          : currentServerUrl;
+      return '$cleanBase$path';
+    }
+    return current;
+  }
+
   /// Cover HQ untuk halaman detail
   String get coverUrlOriginal {
     return coverUrl;
